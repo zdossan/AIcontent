@@ -10,7 +10,7 @@ from aiogram.exceptions import TelegramAPIError
 from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, Message
 
-from bot import billing, keyboards, store, texts
+from bot import billing, keyboards, offer, store, texts
 from bot.store import Drama
 
 log = logging.getLogger(__name__)
@@ -193,3 +193,15 @@ async def cb_access(callback: CallbackQuery, bot) -> None:
         return
     await billing.grant_access(bot, callback.message.chat.id,
                                callback.from_user.id, drama)
+
+
+@router.callback_query(F.data == "offer")
+async def cb_offer(callback: CallbackQuery, bot) -> None:
+    """Жария офертаны PDF түрінде жіберу."""
+    await ack(bot, callback)
+    try:
+        await bot.send_document(chat_id=callback.message.chat.id,
+                                document=offer.document(),
+                                caption=texts.OFFER_CAPTION)
+    except TelegramAPIError as err:
+        log.error("Оферта жіберілмеді: %s", err)

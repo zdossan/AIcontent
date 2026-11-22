@@ -29,6 +29,8 @@ def drama_kb(drama: Drama, is_paid: bool) -> InlineKeyboardMarkup:
         rows.append([InlineKeyboardButton(
             text=texts.BTN_PAY.format(price=drama.price_kzt),
             callback_data=f"pay:{drama.id}")])
+        rows.append([InlineKeyboardButton(text=texts.BTN_OFFER,
+                                          callback_data="offer")])
     rows.append([InlineKeyboardButton(text=texts.BTN_BACK, callback_data="back")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -38,6 +40,7 @@ def pay_kb(drama: Drama) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=texts.BTN_PAY.format(price=drama.price_kzt),
                               callback_data=f"pay:{drama.id}")],
+        [InlineKeyboardButton(text=texts.BTN_OFFER, callback_data="offer")],
         [InlineKeyboardButton(text=texts.BTN_BACK, callback_data="back")],
     ])
 
@@ -48,9 +51,10 @@ def back_kb() -> InlineKeyboardMarkup:
 
 
 def kaspi_kb(url: str) -> InlineKeyboardMarkup:
-    """Kaspi төлем сілтемесі."""
+    """Kaspi төлем сілтемесі және оның жанында оферта."""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=texts.BTN_PAY_NOW, url=url)]])
+        [InlineKeyboardButton(text=texts.BTN_PAY_NOW, url=url)],
+        [InlineKeyboardButton(text=texts.BTN_OFFER, callback_data="offer")]])
 
 
 def new_link_kb(drama_id: int) -> InlineKeyboardMarkup:
