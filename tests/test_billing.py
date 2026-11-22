@@ -93,3 +93,27 @@ async def test_member_is_not_sent_another_invite(fake_bot, db, drama, paid_user)
     fake_bot.member_status = "member"
     assert await billing.grant_access(fake_bot, 7, paid_user, drama) is True
     assert "create_chat_invite_link" not in fake_bot.calls
+
+
+async def test_two_simultaneous_clicks_create_one_invoice(
+        fake_bot, db, drama, fake_arzan):
+    """Екі түймені бір мезетте басса да, бір ғана шот ашылуы керек.
+
+    Кэш сұраудан КЕЙІН жазылса, екі қатар шақыру екеуі де кэштен өтіп
+    кетеді — адам екі рет төлеп қалуы мүмкін.
+    """
+    import asyncio
+
+    await asyncio.gather(
+        billing.start_payment(fake_bot, 7, 7, drama),
+        billing.start_payment(fake_bot, 7, 7, drama),
+    )
+    assert len(fake_arzan.created_links) == 1
+
+
+async def test_access_for_drama_without_channel_does_not_crash(fake_bot, db):
+    """Арнасы байланбаған сериалға қолжетімділік сұралса да құламауы керек."""
+    d = store.create_drama("Арнасыз", "", 490, 10, 3)
+    store.create_purchase(7, d.id, "qr_x", 490)
+    store.mark_paid("qr_x")
+    assert await billing.grant_access(fake_bot, 7, 7, d) is False

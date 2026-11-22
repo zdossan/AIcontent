@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import asyncio
+import html
 import logging
 import uuid
 
@@ -32,6 +33,13 @@ _TASKS: set[asyncio.Task] = set()
 # (tg_id, drama_id) -> (url, invoice_id, қашан ескіреді)
 LINK_CACHE: dict[tuple[int, int], tuple[str, str, float]] = {}
 LINK_TTL_SEC = 150
+
+# Бір адам түймені екі рет қатар бассa екі шот ашылмауы үшін.
+_LOCKS: dict[tuple[int, int], asyncio.Lock] = {}
+
+
+def _lock_for(tg_id: int, drama_id: int) -> asyncio.Lock:
+    return _LOCKS.setdefault((tg_id, drama_id), asyncio.Lock())
 
 
 def _spawn(coro) -> asyncio.Task:
@@ -79,32 +87,44 @@ async def start_payment(bot, chat_id: int, tg_id: int, drama: Drama) -> None:
         await grant_access(bot, chat_id, tg_id, drama)
         return
 
+    # Құлып: қатар келген екінші шақыру бірінші шотты күтеді де,
+    # кэштен дайын сілтемені алады.
+    async with _lock_for(tg_id, drama.id):
+        url, invoice_id = await _ensure_link(bot, chat_id, tg_id, drama)
+    if url is None:
+        return
+
+    await _say(bot, chat_id,
+               texts.PAY_LINK.format(title=html.escape(drama.title), price=drama.price_kzt),
+               keyboards.kaspi_kb(url))
+
+
+async def _ensure_link(bot, chat_id: int, tg_id: int,
+                       drama: Drama) -> tuple[str | None, str | None]:
+    """Жарамды сілтемені қайтару: кэштен немесе жаңасын жасап."""
     loop = asyncio.get_running_loop()
     cached = LINK_CACHE.get((tg_id, drama.id))
     if cached and cached[2] > loop.time():
-        url, invoice_id = cached[0], cached[1]
-    else:
-        order_id = f"d{drama.id}-u{tg_id}-{uuid.uuid4().hex[:8]}"
-        try:
-            link = await payments.create_payment_link(
-                amount=drama.price_kzt,
-                description=drama.title,
-                external_order_id=order_id,
-            )
-        except Exception:
-            log.exception("Төлем сілтемесі жасалмады (user=%s, сериал=%s)",
-                          tg_id, drama.id)
-            await _say(bot, chat_id, texts.PAY_FAILED, keyboards.back_kb())
-            return
+        return cached[0], cached[1]
 
-        url, invoice_id = link.url, link.id
-        LINK_CACHE[(tg_id, drama.id)] = (url, invoice_id, loop.time() + LINK_TTL_SEC)
-        store.create_purchase(tg_id, drama.id, invoice_id, drama.price_kzt)
-        _spawn(watch_invoice(bot, chat_id, tg_id, drama.id, invoice_id))
+    order_id = f"d{drama.id}-u{tg_id}-{uuid.uuid4().hex[:8]}"
+    try:
+        link = await payments.create_payment_link(
+            amount=drama.price_kzt,
+            description=drama.title,
+            external_order_id=order_id,
+        )
+    except Exception:
+        log.exception("Төлем сілтемесі жасалмады (user=%s, сериал=%s)",
+                      tg_id, drama.id)
+        await _say(bot, chat_id, texts.PAY_FAILED, keyboards.back_kb())
+        return None, None
 
-    await _say(bot, chat_id,
-               texts.PAY_LINK.format(title=drama.title, price=drama.price_kzt),
-               keyboards.kaspi_kb(url))
+    url, invoice_id = link.url, link.id
+    LINK_CACHE[(tg_id, drama.id)] = (url, invoice_id, loop.time() + LINK_TTL_SEC)
+    store.create_purchase(tg_id, drama.id, invoice_id, drama.price_kzt)
+    _spawn(watch_invoice(bot, chat_id, tg_id, drama.id, invoice_id))
+    return url, invoice_id
 
 
 async def watch_invoice(bot, chat_id: int, tg_id: int, drama_id: int,
@@ -160,6 +180,13 @@ async def grant_access(bot, chat_id: int, tg_id: int, drama: Drama) -> bool:
     False қайтарады: сілтеме лимиті бітсе немесе Telegram сілтеме бермесе.
     Сатып алудың өзі ешқашан жойылмайды.
     """
+    if drama.channel_id is None:
+        log.error("Сериалдың арнасы байланбаған: %s", drama.id)
+        await notify_admins(bot, texts.ADMIN_INVITE_FAILED.format(
+            tg_id=tg_id, title=drama.title))
+        await _say(bot, chat_id, texts.INVITE_FAILED, keyboards.retry_kb(drama.id))
+        return False
+
     purchase = store.paid_purchase(tg_id, drama.id)
     if purchase is None:
         log.error("Төлемсіз қолжетімділік сұралды: user=%s сериал=%s",
@@ -167,7 +194,7 @@ async def grant_access(bot, chat_id: int, tg_id: int, drama: Drama) -> bool:
         return False
 
     if await access.is_member(bot, drama.channel_id, tg_id):
-        await _say(bot, chat_id, texts.ALREADY_MEMBER.format(title=drama.title),
+        await _say(bot, chat_id, texts.ALREADY_MEMBER.format(title=html.escape(drama.title)),
                    keyboards.back_kb())
         return True
 
@@ -186,7 +213,7 @@ async def grant_access(bot, chat_id: int, tg_id: int, drama: Drama) -> bool:
 
     store.bump_invites(purchase.id)
     await _say(bot, chat_id,
-               texts.PAID_WITH_LINK.format(title=drama.title, url=url))
+               texts.PAID_WITH_LINK.format(title=html.escape(drama.title), url=url))
     return True
 
 

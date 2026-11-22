@@ -48,3 +48,14 @@ async def test_free_episodes_sends_what_exists(fake_bot, db, drama_with_3_episod
 async def test_free_episodes_with_empty_catalog_sends_none(fake_bot, db, drama):
     assert await handlers.send_free_episodes(fake_bot, 7, drama) == 0
     assert "copy_message" not in fake_bot.calls
+
+
+async def test_drama_card_escapes_html_in_title(fake_bot, db):
+    """Атауда < белгісі болса Telegram хабарламаны қабылдамай қалады."""
+    from tests.conftest import make_callback
+
+    d = store.create_drama("Тең <емес>", "Сипаттама & тағы", 490, 26, 6)
+    store.bind_channel(d.bind_code, -100123)
+    await handlers.cb_drama(make_callback(7, f"drama:{d.id}"), fake_bot)
+    text = fake_bot.last_text()
+    assert "&lt;емес&gt;" in text and "&amp;" in text

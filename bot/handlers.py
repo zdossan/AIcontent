@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import logging
 
 from aiogram import F, Router
@@ -72,7 +73,8 @@ async def cb_drama(callback: CallbackQuery, bot) -> None:
     is_paid = store.paid_purchase(callback.from_user.id, drama.id) is not None
     await bot.send_message(
         callback.message.chat.id,
-        texts.DRAMA_CARD.format(title=drama.title, description=drama.description,
+        texts.DRAMA_CARD.format(title=html.escape(drama.title),
+                                description=html.escape(drama.description),
                                 total=drama.total_episodes,
                                 free=drama.free_episodes, price=drama.price_kzt),
         reply_markup=keyboards.drama_kb(drama, is_paid),

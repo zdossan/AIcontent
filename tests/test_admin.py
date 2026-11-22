@@ -58,3 +58,11 @@ async def test_stats_shows_sales(fake_bot, db, drama, paid_user):
 async def test_export_sends_csv(fake_bot, db, drama, paid_user):
     await admin.cmd_export(make_message(ADMIN_ID, "/export"), fake_bot)
     assert fake_bot.calls["send_document"]
+
+
+async def test_command_during_dialog_cancels_it(fake_bot, db, fsm):
+    """Диалог ортасында /start жазса — иесі тұрып қалмауы керек."""
+    await admin.cmd_new(make_message(ADMIN_ID, "/жаңа"), fake_bot, fsm)
+    await admin.handle_new_step(make_message(ADMIN_ID, "/start"), fake_bot, fsm)
+    assert await fsm.get_state() is None
+    assert store.all_dramas() == []

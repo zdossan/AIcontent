@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import csv
+import html
 import io
 import logging
 
@@ -51,7 +52,15 @@ async def handle_new_step(message: Message, bot, state: FSMContext) -> None:
 
     current = await state.get_state()
     answer = (message.text or "").strip()
-    say = lambda text: bot.send_message(chat_id=message.chat.id, text=text)
+
+    async def say(text: str) -> None:
+        await bot.send_message(chat_id=message.chat.id, text=text)
+
+    # Диалог ортасында команда жазса — шығамыз, әйтпесе иесі тұрып қалады.
+    if answer.startswith("/"):
+        await state.clear()
+        await say(texts.NEW_CANCELLED)
+        return
 
     if current == NewDrama.title.state:
         await state.update_data(title=answer)
@@ -91,7 +100,7 @@ async def handle_new_step(message: Message, bot, state: FSMContext) -> None:
     drama = store.create_drama(data["title"], data["description"],
                                data["price"], data["total"], value)
     await state.clear()
-    await say(texts.NEW_DONE.format(title=drama.title, code=drama.bind_code))
+    await say(texts.NEW_DONE.format(title=html.escape(drama.title), code=drama.bind_code))
 
 
 @router.message(Command("bolimder"))
@@ -109,7 +118,7 @@ async def cmd_bolimder(message: Message, bot) -> None:
     for drama in dramas:
         numbers = {e.number for e in store.episodes(drama.id)}
         channel = "байланған" if drama.channel_id else "арна жоқ"
-        lines.append(f"🎬 <b>{drama.title}</b> ({channel}, коды {drama.bind_code})")
+        lines.append(f"🎬 <b>{html.escape(drama.title)}</b> ({channel}, коды {drama.bind_code})")
         if not numbers:
             lines.append("   бөлім жүктелмеген")
             continue
@@ -134,7 +143,7 @@ async def cmd_stats(message: Message, bot) -> None:
     lines = ["💰 <b>Сатылымдар</b>", ""]
     total = 0
     for title, count, amount in summary:
-        lines.append(f"{title}: {count} сатылым — {amount} ₸")
+        lines.append(f"{html.escape(title)}: {count} сатылым — {amount} ₸")
         total += amount
     lines.append("")
     lines.append(f"Барлығы: {total} ₸")
