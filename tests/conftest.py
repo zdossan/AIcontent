@@ -47,3 +47,26 @@ async def fake_arzan(monkeypatch):
     monkeypatch.setenv("ARZAN_SANDBOX", "true")
     yield fake
     await runner.cleanup()
+
+
+@pytest.fixture
+def drama(db):
+    """Арнасы байланған сериал."""
+    d = store.create_drama("Тең емес", "Сипаттама", 490, 26, 6)
+    return store.bind_channel(d.bind_code, -1001234567890)
+
+
+def make_post(chat_id: int, caption: str | None, message_id: int, *, video: bool = True):
+    """Арнаға түскен нақты aiogram хабарламасын құру."""
+    from datetime import datetime
+
+    from aiogram.types import Chat, Message, Video
+
+    return Message(
+        message_id=message_id,
+        date=datetime(2026, 11, 22, 12, 0, 0),
+        chat=Chat(id=chat_id, type="channel", title="Тең емес"),
+        caption=caption,
+        video=Video(file_id="f", file_unique_id="u", width=720, height=1280,
+                    duration=60) if video else None,
+    )
