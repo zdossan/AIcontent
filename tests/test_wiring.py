@@ -35,3 +35,11 @@ def test_every_user_facing_string_lives_in_texts():
         code = "\n".join(line for line in code.split("\n")
                          if "log." not in line and not line.strip().startswith("#"))
         assert not cyrillic_literal.findall(code), f"{name}: мәтін texts.py-ға көшірілсін"
+
+
+def test_support_contacts_are_reachable_from_help():
+    """Көмек бөлімінде байланыс деректері болуы керек."""
+    from bot import texts
+
+    assert "@tech_supportZZ" in texts.HELP
+    assert "+77014031734" in texts.HELP
