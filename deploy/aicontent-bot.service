@@ -1,0 +1,29 @@
+[Unit]
+Description=AIcontent short drama bot (Telegram)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=aicontent
+Group=aicontent
+WorkingDirectory=/opt/aicontent-bot
+ExecStart=/opt/aicontent-bot/.venv/bin/python -m bot
+
+# Құлап қалса қайта қосу
+Restart=always
+RestartSec=5
+
+# Логтар: journalctl -u aicontent-bot -f
+StandardOutput=journal
+StandardError=journal
+
+# Қауіпсіздік шектеулері
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/aicontent-bot
+
+[Install]
+WantedBy=multi-user.target
