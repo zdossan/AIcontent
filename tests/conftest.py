@@ -142,3 +142,43 @@ def telegram_error(message: str):
     from aiogram.methods import CreateChatInviteLink
 
     return TelegramBadRequest(method=CreateChatInviteLink(chat_id=1), message=message)
+
+
+def make_message(tg_id: int, text: str = "/start", chat_id: int | None = None):
+    """Жеке чаттан келген нақты хабарлама."""
+    from datetime import datetime
+
+    from aiogram.types import Chat, Message, User
+
+    return Message(
+        message_id=1,
+        date=datetime(2026, 11, 22, 12, 0, 0),
+        chat=Chat(id=chat_id if chat_id is not None else tg_id, type="private"),
+        from_user=User(id=tg_id, is_bot=False, first_name="Аян",
+                       username="ayan"),
+        text=text,
+    )
+
+
+@pytest.fixture
+def drama_with_26_episodes(drama):
+    """1-26 бөлім: message_id 10-дан басталады."""
+    for number in range(1, 27):
+        store.add_episode(drama.id, number, 9 + number)
+    return drama
+
+
+@pytest.fixture
+def drama_with_3_episodes(drama):
+    for number in range(1, 4):
+        store.add_episode(drama.id, number, 9 + number)
+    return drama
+
+
+@pytest.fixture
+def paid_user(drama):
+    """Сериалды сатып алған қолданушының tg_id-і."""
+    tg_id = 777
+    store.create_purchase(tg_id, drama.id, "qr_paid", drama.price_kzt)
+    store.mark_paid("qr_paid")
+    return tg_id

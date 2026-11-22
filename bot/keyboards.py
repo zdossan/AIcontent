@@ -1,0 +1,47 @@
+"""Инлайн пернетақталар."""
+
+from __future__ import annotations
+
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+from bot import texts
+from bot.store import Drama
+
+
+def catalog_kb(dramas: list[Drama], paid_ids: set[int]) -> InlineKeyboardMarkup:
+    """Сериалдар тізімі. Сатып алынғандар ✅ белгісімен."""
+    rows = [
+        [InlineKeyboardButton(
+            text=f"{d.title} ✅" if d.id in paid_ids else d.title,
+            callback_data=f"drama:{d.id}")]
+        for d in dramas
+    ]
+    rows.append([InlineKeyboardButton(text=texts.BTN_MY, callback_data="my")])
+    rows.append([InlineKeyboardButton(text=texts.BTN_HELP, callback_data="help")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def drama_kb(drama: Drama, is_paid: bool) -> InlineKeyboardMarkup:
+    """Сериал картасы: тегін көру, төлеу, артқа."""
+    rows = [[InlineKeyboardButton(text=texts.BTN_FREE,
+                                  callback_data=f"free:{drama.id}")]]
+    if not is_paid:
+        rows.append([InlineKeyboardButton(
+            text=texts.BTN_PAY.format(price=drama.price_kzt),
+            callback_data=f"pay:{drama.id}")])
+    rows.append([InlineKeyboardButton(text=texts.BTN_BACK, callback_data="back")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def pay_kb(drama: Drama) -> InlineKeyboardMarkup:
+    """Тегін бөлімдерден кейінгі төлем түймесі."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=texts.BTN_PAY.format(price=drama.price_kzt),
+                              callback_data=f"pay:{drama.id}")],
+        [InlineKeyboardButton(text=texts.BTN_BACK, callback_data="back")],
+    ])
+
+
+def back_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=texts.BTN_BACK, callback_data="back")]])
