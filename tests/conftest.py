@@ -225,3 +225,17 @@ def make_callback(tg_id: int, data: str):
         data=data,
         message=make_message(tg_id, text="menu"),
     )
+
+
+@pytest.fixture
+def fsm():
+    """Нақты aiogram FSM контексті (жадтағы қойма)."""
+    from aiogram.fsm.context import FSMContext
+    from aiogram.fsm.storage.base import StorageKey
+    from aiogram.fsm.storage.memory import MemoryStorage
+
+    return FSMContext(storage=MemoryStorage(),
+                      key=StorageKey(bot_id=1, chat_id=ADMIN_ID, user_id=ADMIN_ID))
+
+
+ADMIN_ID = 913413251

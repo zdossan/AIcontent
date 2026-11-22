@@ -9,7 +9,7 @@ from aiogram.enums import ParseMode
 from aiogram.types import BotCommand
 from dotenv import load_dotenv
 
-from bot import billing, catalog, config, handlers, store
+from bot import admin, billing, catalog, config, handlers, store
 
 
 async def main() -> None:
@@ -23,9 +23,12 @@ async def main() -> None:
 
     bot = Bot(config.bot_token(),
               default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-    await bot.set_my_commands([BotCommand(command="start", description="Басты мәзір")])
+    await bot.set_my_commands([
+        BotCommand(command="start", description="Басты мәзір"),
+    ])
 
     dp = Dispatcher()
+    dp.include_router(admin.router)
     dp.include_router(handlers.router)
     dp.include_router(catalog.router)
 
