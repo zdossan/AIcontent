@@ -26,30 +26,6 @@ async def test_start_without_dramas_explains(fake_bot, db):
     assert fake_bot.last_markup() is None
 
 
-async def test_free_episodes_copied_with_protection(fake_bot, db, drama_with_26_episodes):
-    sent = await handlers.send_free_episodes(fake_bot, 7, drama_with_26_episodes)
-    assert sent == 6
-    calls = fake_bot.calls["copy_message"]
-    assert [c["message_id"] for c in calls] == [10, 11, 12, 13, 14, 15]
-    assert all(c["protect_content"] is True for c in calls)
-
-
-async def test_free_episodes_copied_from_channel(fake_bot, db, drama_with_26_episodes):
-    await handlers.send_free_episodes(fake_bot, 7, drama_with_26_episodes)
-    call = fake_bot.calls["copy_message"][0]
-    assert call["from_chat_id"] == drama_with_26_episodes.channel_id
-    assert call["chat_id"] == 7
-
-
-async def test_free_episodes_sends_what_exists(fake_bot, db, drama_with_3_episodes):
-    assert await handlers.send_free_episodes(fake_bot, 7, drama_with_3_episodes) == 3
-
-
-async def test_free_episodes_with_empty_catalog_sends_none(fake_bot, db, drama):
-    assert await handlers.send_free_episodes(fake_bot, 7, drama) == 0
-    assert "copy_message" not in fake_bot.calls
-
-
 async def test_drama_card_escapes_html_in_title(fake_bot, db):
     """Атауда < белгісі болса Telegram хабарламаны қабылдамай қалады."""
     from tests.conftest import make_callback

@@ -83,49 +83,65 @@ async def cb_drama(callback: CallbackQuery, bot) -> None:
 
 @router.callback_query(F.data.startswith("free:"))
 async def cb_free(callback: CallbackQuery, bot) -> None:
-    """Тегін бөлімдерді жіберу."""
+    """Тегін көруді бірінші бөлімнен бастау."""
     await ack(bot, callback)
     drama = store.get_drama(int(callback.data.split(":")[1]))
     if drama is None:
         return
+    await send_episode(bot, callback.message.chat.id, drama, 1)
 
-    chat_id = callback.message.chat.id
-    sent = await send_free_episodes(bot, chat_id, drama)
-    if sent == 0:
-        await bot.send_message(chat_id, texts.EPISODES_SOON,
-                               reply_markup=keyboards.back_kb())
+
+@router.callback_query(F.data.startswith("ep:"))
+async def cb_episode(callback: CallbackQuery, bot) -> None:
+    """«Алдыға» / «Артқа» түймелері."""
+    await ack(bot, callback)
+    _, drama_id, number = callback.data.split(":")
+    drama = store.get_drama(int(drama_id))
+    if drama is None:
         return
-
-    await bot.send_message(
-        chat_id,
-        texts.FREE_DONE.format(total=drama.total_episodes, price=drama.price_kzt),
-        reply_markup=keyboards.pay_kb(drama),
-    )
+    await send_episode(bot, callback.message.chat.id, drama, int(number))
 
 
-async def send_free_episodes(bot, chat_id: int, drama: Drama) -> int:
-    """Алғашқы бөлімдерді жабық арнадан көшіріп жіберу.
+async def send_episode(bot, chat_id: int, drama: Drama, number: int) -> bool:
+    """Бір бөлімді жабық арнадан көшіріп жіберу.
 
-    protect_content=True — видеоны әрі қарай жіберуге болмайды.
-    Қоймада жоқ бөлімдер аттап кетіледі, жіберілген саны қайтарылады.
+    Тегін шектен асса — видео жіберілмейді, төлем ұсынылады.
+    protect_content=True: видеоны әрі қарай жіберуге болмайды.
     """
-    sent = 0
-    for episode in store.episodes(drama.id):
-        if episode.number > drama.free_episodes:
-            break
-        try:
-            await bot.copy_message(
-                chat_id=chat_id,
-                from_chat_id=drama.channel_id,
-                message_id=episode.message_id,
-                protect_content=True,
-            )
-        except TelegramAPIError as err:
-            log.error("Бөлім жіберілмеді (сериал=%s, бөлім=%s): %s",
-                      drama.id, episode.number, err)
-            continue
-        sent += 1
-    return sent
+    if number > drama.free_episodes:
+        await bot.send_message(
+            chat_id=chat_id,
+            text=texts.FREE_DONE.format(total=drama.total_episodes,
+                                        price=drama.price_kzt),
+            reply_markup=keyboards.pay_kb(drama),
+        )
+        return False
+
+    episode = next((e for e in store.episodes(drama.id) if e.number == number), None)
+    if episode is None:
+        log.warning("Бөлім жүктелмеген: сериал=%s нөмір=%s", drama.id, number)
+        await bot.send_message(chat_id=chat_id, text=texts.EPISODE_MISSING,
+                               reply_markup=keyboards.back_kb())
+        return False
+
+    try:
+        await bot.copy_message(
+            chat_id=chat_id,
+            from_chat_id=drama.channel_id,
+            message_id=episode.message_id,
+            caption=texts.EPISODE_CAPTION.format(
+                title=html.escape(drama.title), number=number,
+                total=drama.total_episodes),
+            protect_content=True,
+            reply_markup=keyboards.episode_kb(drama, number),
+        )
+    except TelegramAPIError as err:
+        log.error("Бөлім жіберілмеді (сериал=%s, бөлім=%s): %s",
+                  drama.id, number, err)
+        await bot.send_message(chat_id=chat_id, text=texts.EPISODE_MISSING,
+                               reply_markup=keyboards.back_kb())
+        return False
+    return True
 
 
 @router.callback_query(F.data.startswith("pay:"))

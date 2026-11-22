@@ -74,3 +74,25 @@ def my_dramas_kb(dramas: list[Drama]) -> InlineKeyboardMarkup:
             for d in dramas]
     rows.append([InlineKeyboardButton(text=texts.BTN_BACK, callback_data="back")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def episode_kb(drama: Drama, number: int) -> InlineKeyboardMarkup:
+    """Бөлімнің астындағы навигация.
+
+    Соңғы тегін бөлімнен кейін «алдыға» орнына төлем түймесі тұрады.
+    """
+    nav = []
+    if number > 1:
+        nav.append(InlineKeyboardButton(text=texts.BTN_PREV,
+                                        callback_data=f"ep:{drama.id}:{number - 1}"))
+    if number < drama.free_episodes:
+        nav.append(InlineKeyboardButton(text=texts.BTN_NEXT,
+                                        callback_data=f"ep:{drama.id}:{number + 1}"))
+
+    rows = [nav] if nav else []
+    if number >= drama.free_episodes:
+        rows.append([InlineKeyboardButton(
+            text=texts.BTN_PAY.format(price=drama.price_kzt),
+            callback_data=f"pay:{drama.id}")])
+    rows.append([InlineKeyboardButton(text=texts.BTN_MENU, callback_data="back")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)

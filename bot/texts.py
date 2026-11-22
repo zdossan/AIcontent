@@ -42,6 +42,16 @@ FREE_DONE = (
     "Бағасы — {price} ₸, қолжетімділік мәңгілік."
 )
 
+EPISODE_CAPTION = "«{title}» — {number} / {total} бөлім"
+
+EPISODE_MISSING = (
+    "Бұл бөлім әлі жүктелмеген. 🙏\n"
+    "Жақын арада қосылады."
+)
+
+BTN_NEXT = "Алдыға ➡️"
+BTN_PREV = "⬅️ Артқа"
+BTN_MENU = "⬅️ Мәзірге"
 BTN_FREE = "🎬 Тегін көру"
 BTN_PAY = "💳 Толық нұсқа — {price} ₸"
 BTN_BACK = "⬅️ Артқа"
