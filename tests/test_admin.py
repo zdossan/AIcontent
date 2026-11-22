@@ -84,3 +84,19 @@ async def test_stats_counts_pending_separately(fake_bot, db, drama, paid_user):
     text = fake_bot.last_text()
     assert "490" in text
     assert "980" not in text
+
+
+async def test_admin_commands_are_registered_in_menu(fake_bot, db, monkeypatch):
+    """Иесінің Telegram мәзірінде командалар көрінуі керек."""
+    monkeypatch.setenv("ADMIN_IDS", str(ADMIN_ID))
+    await admin.setup_admin_commands(fake_bot)
+    call = fake_bot.calls["set_my_commands"][0]
+    names = [c.command for c in call["commands"]]
+    assert {"stats", "export", "bolimder"} <= set(names)
+    assert call["scope"].chat_id == ADMIN_ID
+
+
+async def test_no_admin_commands_without_admins(fake_bot, db, monkeypatch):
+    monkeypatch.delenv("ADMIN_IDS", raising=False)
+    await admin.setup_admin_commands(fake_bot)
+    assert "set_my_commands" not in fake_bot.calls

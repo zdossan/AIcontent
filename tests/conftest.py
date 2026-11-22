@@ -140,6 +140,9 @@ class FakeBot:
             return ChatMemberOwner(user=user, is_anonymous=False)
         return ChatMemberLeft(user=user)
 
+    async def set_my_commands(self, **kwargs):
+        self._record("set_my_commands", kwargs)
+
     async def delete_message(self, **kwargs):
         self._record("delete_message", kwargs)
 

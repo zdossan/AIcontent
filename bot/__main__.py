@@ -27,6 +27,8 @@ async def main() -> None:
         BotCommand(command="start", description="Басты мәзір"),
     ])
 
+    await admin.setup_admin_commands(bot)
+
     dp = Dispatcher()
     dp.include_router(admin.router)
     dp.include_router(handlers.router)

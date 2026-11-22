@@ -14,7 +14,9 @@ from aiogram import F, Router
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import BufferedInputFile, Message
+from aiogram.exceptions import TelegramAPIError
+from aiogram.types import (BotCommand, BotCommandScopeChat, BufferedInputFile,
+                           Message)
 
 from bot import config, store, texts
 
@@ -29,6 +31,29 @@ class NewDrama(StatesGroup):
     price = State()
     total = State()
     free = State()
+
+
+# Иесінің Telegram мәзірінде көрінетін командалар.
+ADMIN_COMMANDS = [
+    BotCommand(command="start", description="Басты мәзір"),
+    BotCommand(command="stats", description="Сатылымдар мен төлегендер"),
+    BotCommand(command="export", description="Төлемдерді CSV етіп жүктеу"),
+    BotCommand(command="bolimder", description="Қай бөлімдер жүктелген"),
+    BotCommand(command="new", description="Жаңа сериал қосу"),
+]
+
+
+async def setup_admin_commands(bot) -> None:
+    """Командаларды тек админдердің мәзіріне қосу.
+
+    Қарапайым қолданушыда бұрынғыдай тек /start көрінеді.
+    """
+    for admin_id in config.admin_ids():
+        try:
+            await bot.set_my_commands(commands=ADMIN_COMMANDS,
+                                      scope=BotCommandScopeChat(chat_id=admin_id))
+        except TelegramAPIError as err:
+            log.warning("Админ мәзірі орнатылмады (%s): %s", admin_id, err)
 
 
 def is_admin(message: Message) -> bool:
