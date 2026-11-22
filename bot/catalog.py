@@ -33,6 +33,10 @@ def parse_episode_number(caption: str | None) -> int | None:
     return int(match.group()) if match else None
 
 
+# Арна да, топ та жарайды: иесі қайсысын ашса да бот жұмыс істеуі керек.
+GROUP_TYPES = {"channel", "group", "supergroup"}
+
+
 @router.channel_post(F.video)
 async def handle_channel_post(message: Message) -> None:
     """Арнаға түскен видеоны каталогқа жазу."""
@@ -56,8 +60,11 @@ async def handle_channel_post(message: Message) -> None:
 
 
 @router.channel_post(F.text.startswith("/bind"))
-async def handle_bind(message: Message) -> None:
-    """Арнаны сериалға байлау: /bind ABC123."""
+async def handle_bind(message: Message, bot=None) -> None:
+    """Арнаны (немесе топты) сериалға байлау: /bind ABC123."""
+    if message.chat.type not in GROUP_TYPES:
+        return
+
     parts = (message.text or "").split()
     if len(parts) < 2:
         log.warning("Байлау коды көрсетілмеген: chat=%s", message.chat.id)
@@ -69,9 +76,12 @@ async def handle_bind(message: Message) -> None:
         return
 
     log.info("Арна %s «%s» сериалына байланды", message.chat.id, drama.title)
+    if bot is None:
+        return
     try:
         # Код арнада көрініп тұрмауы үшін өшіреміз.
-        await message.delete()
+        await bot.delete_message(chat_id=message.chat.id,
+                                 message_id=message.message_id)
     except TelegramAPIError as err:
         log.warning("Байлау хабарламасы өшірілмеді: %s", err)
 
@@ -86,3 +96,28 @@ async def log_channel_post(message: Message) -> None:
     log.info("Арна посты: chat=%s (%s), тақырып=%r, видео=%s",
              message.chat.id, message.chat.title,
              message.caption or message.text, message.video is not None)
+
+
+@router.message(F.chat.type.in_(GROUP_TYPES), F.text.startswith("/bind"))
+async def handle_group_bind(message: Message, bot=None) -> None:
+    """Топта жазылған /bind — арнадағымен бірдей өңделеді."""
+    await handle_bind(message, bot)
+
+
+@router.message(F.chat.type.in_(GROUP_TYPES), F.video)
+async def handle_group_post(message: Message) -> None:
+    """Топқа жүктелген видео — арнадағымен бірдей каталогқа түседі."""
+    if message.chat.type not in GROUP_TYPES:
+        return
+    await handle_channel_post(message)
+
+
+@router.message()
+async def log_message(message: Message) -> None:
+    """Ешбір хендлерге түспеген хабарламаны логқа жазу.
+
+    Баптау кезінде «команда қай чатқа жазылды?» дегенді осыдан көреміз.
+    """
+    log.info("Өңделмеген хабарлама: chat=%s type=%s title=%r мәтін=%r видео=%s",
+             message.chat.id, message.chat.type, message.chat.title,
+             message.text or message.caption, message.video is not None)

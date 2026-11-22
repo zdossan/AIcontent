@@ -44,3 +44,39 @@ async def test_unknown_channel_post_is_logged(db, caplog):
     with caplog.at_level(logging.INFO, logger="bot.catalog"):
         await catalog.log_channel_post(make_post(-100777, "сәлем", 1, video=False))
     assert "-100777" in caplog.text
+
+
+async def test_bind_works_in_supergroup(db, fake_bot):
+    """Иесі канал емес, топ жасаса да /bind жұмыс істеуі керек."""
+    from tests.conftest import make_group_post
+
+    d = store.create_drama("Тең емес", "", 490, 26, 6)
+    await catalog.handle_bind(make_group_post(-1009999, None, 1, video=False,
+                                              text=f"/bind {d.bind_code}"), fake_bot)
+    assert store.get_drama(d.id).channel_id == -1009999
+
+
+async def test_video_in_supergroup_is_collected(db, drama):
+    from tests.conftest import make_group_post
+
+    await catalog.handle_channel_post(make_group_post(drama.channel_id, "4", 44))
+    assert [(e.number, e.message_id) for e in store.episodes(drama.id)] == [(4, 44)]
+
+
+async def test_private_message_is_not_treated_as_episode(db, drama):
+    from tests.conftest import make_message
+
+    msg = make_message(7, text="4")
+    await catalog.handle_group_post(msg)
+    assert store.episodes(drama.id) == []
+
+
+async def test_unhandled_message_is_logged(db, caplog):
+    """Қай чатқа жазылғанын логтан көру үшін."""
+    import logging
+
+    from tests.conftest import make_message
+
+    with caplog.at_level(logging.INFO, logger="bot.catalog"):
+        await catalog.log_message(make_message(7, text="/bind ABC123"))
+    assert "private" in caplog.text and "/bind" in caplog.text

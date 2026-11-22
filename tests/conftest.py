@@ -140,6 +140,9 @@ class FakeBot:
             return ChatMemberOwner(user=user, is_anonymous=False)
         return ChatMemberLeft(user=user)
 
+    async def delete_message(self, **kwargs):
+        self._record("delete_message", kwargs)
+
     async def answer_callback_query(self, **kwargs):
         self._record("answer_callback_query", kwargs)
 
@@ -239,3 +242,22 @@ def fsm():
 
 
 ADMIN_ID = 913413251
+
+
+def make_group_post(chat_id: int, caption: str | None, message_id: int, *,
+                    video: bool = True, text: str | None = None):
+    """Топқа (supergroup) жіберілген хабарлама."""
+    from datetime import datetime
+
+    from aiogram.types import Chat, Message, User, Video
+
+    return Message(
+        message_id=message_id,
+        date=datetime(2026, 11, 22, 12, 0, 0),
+        chat=Chat(id=chat_id, type="supergroup", title="Тең емес"),
+        from_user=User(id=ADMIN_ID, is_bot=False, first_name="Zhanerke"),
+        caption=caption,
+        text=text,
+        video=Video(file_id="f", file_unique_id="u", width=720, height=1280,
+                    duration=60) if video else None,
+    )
