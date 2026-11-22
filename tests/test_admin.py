@@ -66,3 +66,21 @@ async def test_command_during_dialog_cancels_it(fake_bot, db, fsm):
     await admin.handle_new_step(make_message(ADMIN_ID, "/start"), fake_bot, fsm)
     assert await fsm.get_state() is None
     assert store.all_dramas() == []
+
+
+async def test_stats_lists_recent_buyers(fake_bot, db, drama, paid_user):
+    """/stats тек сома емес, кім төлегенін де көрсетуі керек."""
+    store.upsert_user(paid_user, "aigerim", "Әйгерім")
+    await admin.cmd_stats(make_message(ADMIN_ID, "/stats"), fake_bot)
+    text = fake_bot.last_text()
+    assert "aigerim" in text or "Әйгерім" in text
+    assert str(paid_user) in text
+
+
+async def test_stats_counts_pending_separately(fake_bot, db, drama, paid_user):
+    """Аяқталмаған төлемдер сатылымға қосылмауы керек."""
+    store.create_purchase(555, drama.id, "qr_pending", 490)
+    await admin.cmd_stats(make_message(ADMIN_ID, "/stats"), fake_bot)
+    text = fake_bot.last_text()
+    assert "490" in text
+    assert "980" not in text

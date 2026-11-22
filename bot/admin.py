@@ -146,7 +146,24 @@ async def cmd_stats(message: Message, bot) -> None:
         lines.append(f"{html.escape(title)}: {count} сатылым - {amount} ₸")
         total += amount
     lines.append("")
-    lines.append(f"Барлығы: {total} ₸")
+    lines.append(f"<b>Барлығы: {total} ₸</b>")
+
+    buyers = store.recent_buyers(10)
+    if buyers:
+        lines.append("")
+        lines.append("👥 <b>Соңғы төлегендер</b>")
+        for b in buyers:
+            who = b["username"] and f"@{b['username']}" or (b["first_name"] or "")
+            lines.append(
+                f"{store.to_local(b['paid_at'])} - {html.escape(who)} "
+                f"(id {b['tg_id']}) - {html.escape(b['title'])}")
+
+    waiting = store.pending_count()
+    if waiting:
+        lines.append("")
+        lines.append(f"⏳ Аяқталмаған төлем: {waiting} "
+                     f"(ақша алынбаған, сатылымға кірмейді)")
+
     await bot.send_message(chat_id=message.chat.id, text="\n".join(lines))
 
 
