@@ -47,6 +47,8 @@ class Invoice:
     id: str
     status: str
     amount: str
+    # Kaspi қайтаратын төлеушінің аты-жөні. Төленбей тұрып бос болады.
+    client_name: str | None = None
 
     @property
     def is_paid(self) -> bool:
@@ -133,7 +135,8 @@ async def get_invoice(invoice_id: str) -> Invoice:
     """Шоттың ағымдағы күйін сұрау."""
     data = await _request("GET", f"/v1/invoices/{invoice_id}")
     return Invoice(id=data["id"], status=data.get("status", "pending"),
-                   amount=str(data.get("amount", "")))
+                   amount=str(data.get("amount", "")),
+                   client_name=data.get("client_name") or None)
 
 
 async def check_many(ids: list[str]) -> dict[str, str]:

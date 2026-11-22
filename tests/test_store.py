@@ -83,3 +83,31 @@ def test_to_local_renders_almaty_time():
 
 def test_to_local_handles_missing_stamp():
     assert store.to_local(None) == "-"
+
+
+def test_old_database_gets_client_name_column(tmp_path):
+    """Бұрыннан бар базаға жаңа баған қосылуы керек - деректер жоғалмай."""
+    import sqlite3
+
+    path = tmp_path / "old.db"
+    old = sqlite3.connect(path)
+    old.executescript(store.SCHEMA.replace(
+        "    client_name  TEXT,\n", ""))
+    old.execute("INSERT INTO dramas (title, price_kzt, total_episodes,"
+                " free_episodes, bind_code, created_at)"
+                " VALUES ('Ескі', 490, 26, 6, 'OLD123', '2026-11-01 10:00:00')")
+    old.execute("INSERT INTO purchases (tg_id, drama_id, invoice_id, amount,"
+                " created_at) VALUES (7, 1, 'qr_old', 490, '2026-11-01 10:00:00')")
+    old.commit()
+    old.close()
+
+    store.init_db(path)
+    purchase = store.mark_paid("qr_old")
+    assert purchase.client_name is None
+    store.close()
+
+
+def test_mark_paid_stores_kaspi_client_name(db, drama):
+    store.create_purchase(7, drama.id, "qr_1", 490)
+    purchase = store.mark_paid("qr_1", client_name="ДОСАН Ж.")
+    assert purchase.client_name == "ДОСАН Ж."

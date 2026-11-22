@@ -178,7 +178,8 @@ async def cmd_stats(message: Message, bot) -> None:
         lines.append("")
         lines.append("👥 <b>Соңғы төлегендер</b>")
         for b in buyers:
-            who = b["username"] and f"@{b['username']}" or (b["first_name"] or "")
+            who = b["client_name"] or (
+                b["username"] and f"@{b['username']}") or (b["first_name"] or "")
             lines.append(
                 f"{store.to_local(b['paid_at'])} - {html.escape(who)} "
                 f"(id {b['tg_id']}) - {html.escape(b['title'])}")
@@ -202,12 +203,14 @@ async def cmd_export(message: Message, bot) -> None:
     buffer = io.StringIO()
     writer = csv.writer(buffer)
     writer.writerow(["Жасалған", "Төленген", "Сериал", "Сома", "Статус",
-                     "telegram id", "username", "Аты", "Шот"])
+                     "telegram id", "username", "Telegram аты",
+                     "Kaspi аты-жөні", "Шот"])
     for row in rows:
         writer.writerow([
             store.to_local(row["created_at"]), store.to_local(row["paid_at"]),
             row["title"], row["amount"], row["status"], row["tg_id"],
-            row["username"] or "", row["first_name"] or "", row["invoice_id"],
+            row["username"] or "", row["first_name"] or "",
+            row["client_name"] or "", row["invoice_id"],
         ])
     document = BufferedInputFile(buffer.getvalue().encode("utf-8-sig"),
                                  filename="tolemder.csv")

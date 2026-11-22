@@ -147,7 +147,8 @@ async def watch_invoice(bot, chat_id: int, tg_id: int, drama_id: int,
 
         LINK_CACHE.pop((tg_id, drama_id), None)
         if invoice.is_paid:
-            await _on_paid(bot, chat_id, tg_id, drama_id, invoice_id)
+            await _on_paid(bot, chat_id, tg_id, drama_id, invoice_id,
+                           invoice.client_name)
         else:
             log.info("Төлем өтпеді: user=%s шот=%s (%s)",
                      tg_id, invoice_id, invoice.status)
@@ -163,10 +164,11 @@ async def watch_invoice(bot, chat_id: int, tg_id: int, drama_id: int,
 
 
 async def _on_paid(bot, chat_id: int, tg_id: int, drama_id: int,
-                   invoice_id: str) -> None:
+                   invoice_id: str, client_name: str | None = None) -> None:
     """Ақша түсті: алдымен базаға, сосын сілтеме."""
-    log.info("Төлем өтті: user=%s шот=%s", tg_id, invoice_id)
-    purchase = store.mark_paid(invoice_id)
+    log.info("Төлем өтті: user=%s шот=%s (Kaspi аты: %s)",
+             tg_id, invoice_id, client_name or "?")
+    purchase = store.mark_paid(invoice_id, client_name)
     drama = store.get_drama(drama_id)
     if drama is None:
         log.error("Төленген сериал табылмады: %s", drama_id)

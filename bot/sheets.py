@@ -23,8 +23,9 @@ SCOPES = [
 ]
 
 HEADERS = [
-    "Төленген уақыты", "Сериал", "Сома", "Аты", "username",
-    "telegram id", "Статус", "Шот", "Жасалған уақыты",
+    "Төленген уақыты", "Сериал", "Сома", "Kaspi аты-жөні",
+    "Telegram аты", "username", "telegram id", "Статус", "Шот",
+    "Жасалған уақыты",
 ]
 
 _lock = asyncio.Lock()
@@ -51,6 +52,7 @@ def sale_row(purchase: Purchase, drama: Drama, username: str | None,
         store.to_local(purchase.paid_at),
         drama.title,
         purchase.amount,
+        purchase.client_name or "",
         first_name or "",
         f"@{username}" if username else "",
         purchase.tg_id,

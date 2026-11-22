@@ -62,7 +62,8 @@ CREATE TABLE IF NOT EXISTS purchases (
     status       TEXT    NOT NULL DEFAULT 'pending',
     created_at   TEXT    NOT NULL,
     paid_at      TEXT,
-    invites_sent INTEGER NOT NULL DEFAULT 0
+    invites_sent INTEGER NOT NULL DEFAULT 0,
+    client_name  TEXT
 );
 
 -- Бір адам бір сериалды екі рет сатып ала алмайды.
@@ -105,6 +106,7 @@ class Purchase:
     created_at: str
     paid_at: str | None
     invites_sent: int
+    client_name: str | None = None
 
     @property
     def is_paid(self) -> bool:
@@ -137,8 +139,21 @@ def init_db(path: Path) -> None:
     _conn.row_factory = sqlite3.Row
     _conn.execute("PRAGMA foreign_keys = ON")
     _conn.executescript(SCHEMA)
+    _migrate(_conn)
     _conn.commit()
     log.info("Дерекқор дайын: %s", path)
+
+
+def _migrate(db: sqlite3.Connection) -> None:
+    """Бұрыннан бар базаға жаңа бағандарды қосу.
+
+    Бот жаңарғанда дерекқор жоғалмауы керек, сондықтан кестені қайта
+    құрмай, жетпейтін бағанды ғана қосамыз.
+    """
+    columns = {row["name"] for row in db.execute("PRAGMA table_info(purchases)")}
+    if "client_name" not in columns:
+        db.execute("ALTER TABLE purchases ADD COLUMN client_name TEXT")
+        log.info("Дерекқорға client_name бағаны қосылды")
 
 
 def close() -> None:
@@ -170,6 +185,7 @@ def _purchase(row: sqlite3.Row) -> Purchase:
         invoice_id=row["invoice_id"], amount=row["amount"], status=row["status"],
         created_at=row["created_at"], paid_at=row["paid_at"],
         invites_sent=row["invites_sent"],
+        client_name=row["client_name"] if "client_name" in row.keys() else None,
     )
 
 
@@ -305,14 +321,18 @@ def create_purchase(tg_id: int, drama_id: int, invoice_id: str, amount: int) -> 
     return int(cur.lastrowid)  # type: ignore[arg-type]
 
 
-def mark_paid(invoice_id: str) -> Purchase | None:
-    """Төлемді «paid» деп белгілеу. Екінші рет шақырса paid_at өзгермейді."""
+def mark_paid(invoice_id: str, client_name: str | None = None) -> Purchase | None:
+    """Төлемді «paid» деп белгілеу. Екінші рет шақырса paid_at өзгермейді.
+
+    client_name - Kaspi қайтарған төлеушінің аты-жөні.
+    """
     db = _db()
     with _lock:
         db.execute(
-            "UPDATE purchases SET status = 'paid', paid_at = ?"
+            "UPDATE purchases SET status = 'paid', paid_at = ?,"
+            " client_name = COALESCE(?, client_name)"
             " WHERE invoice_id = ? AND status != 'paid'",
-            (_now(), invoice_id),
+            (_now(), client_name, invoice_id),
         )
         db.commit()
     row = db.execute("SELECT * FROM purchases WHERE invoice_id = ?",
@@ -383,7 +403,8 @@ def sales_summary() -> list[tuple[str, int, int]]:
 def recent_buyers(limit: int = 10) -> list[dict]:
     """Соңғы төлегендер: кім, қашан, не сатып алды."""
     rows = _db().execute(
-        "SELECT p.tg_id, u.username, u.first_name, d.title, p.amount, p.paid_at"
+        "SELECT p.tg_id, u.username, u.first_name, p.client_name, d.title,"
+        " p.amount, p.paid_at"
         " FROM purchases p JOIN dramas d ON d.id = p.drama_id"
         " LEFT JOIN users u ON u.tg_id = p.tg_id"
         " WHERE p.status = 'paid' ORDER BY p.paid_at DESC LIMIT ?", (limit,)
@@ -402,7 +423,7 @@ def export_rows() -> list[dict]:
     """CSV-ге шығаруға арналған барлық төлемдер."""
     rows = _db().execute(
         "SELECT p.created_at, p.paid_at, d.title, p.amount, p.status,"
-        " p.tg_id, u.username, u.first_name, p.invoice_id"
+        " p.tg_id, u.username, u.first_name, p.client_name, p.invoice_id"
         " FROM purchases p JOIN dramas d ON d.id = p.drama_id"
         " LEFT JOIN users u ON u.tg_id = p.tg_id ORDER BY p.id"
     ).fetchall()

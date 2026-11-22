@@ -44,3 +44,12 @@ def test_invoice_expired_is_final_but_not_paid():
 def test_invoice_paid_is_final():
     inv = payments.Invoice(id="qr_a", status="paid", amount="490.00")
     assert inv.is_final and inv.is_paid
+
+
+async def test_invoice_carries_kaspi_client_name(fake_arzan):
+    """Kaspi төлеушінің аты-жөнін қайтарады - соны алып қалу керек."""
+    fake_arzan.reply("/v1/invoices/qr_a", {
+        "id": "qr_a", "status": "paid", "amount": "490.00",
+        "client_name": "ДОСАН ЖАНЕРКЕ"})
+    invoice = await payments.get_invoice("qr_a")
+    assert invoice.client_name == "ДОСАН ЖАНЕРКЕ"

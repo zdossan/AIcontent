@@ -11,8 +11,9 @@ def test_sale_row_has_all_columns(db, drama):
     row = sheets.sale_row(purchase, drama, username="aigerim",
                           first_name="Әйгерім")
     assert row == [
-        store.to_local(purchase.paid_at), "Тең емес", 490, "Әйгерім",
-        "@aigerim", 7, "paid", "qr_1", store.to_local(purchase.created_at),
+        store.to_local(purchase.paid_at), "Тең емес", 490, "",
+        "Әйгерім", "@aigerim", 7, "paid", "qr_1",
+        store.to_local(purchase.created_at),
     ]
 
 
@@ -20,7 +21,7 @@ def test_sale_row_without_username(db, drama):
     store.create_purchase(7, drama.id, "qr_1", 490)
     purchase = store.mark_paid("qr_1")
     row = sheets.sale_row(purchase, drama, username=None, first_name=None)
-    assert row[3] == "" and row[4] == ""
+    assert row[4] == "" and row[5] == ""
 
 
 def test_disabled_without_sheet_id(monkeypatch):
