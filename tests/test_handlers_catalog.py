@@ -1,4 +1,4 @@
-"""bot.handlers — каталог және тегін бөлімдер."""
+"""bot.handlers - каталог және тегін бөлімдер."""
 
 from bot import handlers, store
 from tests.conftest import make_message

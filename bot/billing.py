@@ -2,7 +2,7 @@
 
 Ең маңызды ереже: ақша түскен соң адам міндетті түрде қолжетімділік алуы
 керек. Сондықтан алдымен төлем базаға жазылады, содан кейін ғана сілтеме
-жасалады — сілтеме сәтсіз болса да, сатып алу сақталып қалады.
+жасалады - сілтеме сәтсіз болса да, сатып алу сақталып қалады.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ POLL_TIMEOUT_SEC = 200
 MAX_INVITES = 5
 
 # Фондағы күту тапсырмалары. Сілтеме сақталмаса, Python оларды
-# қоқысқа жинап жіберуі мүмкін — сонда төлем бақылаусыз қалады.
+# қоқысқа жинап жіберуі мүмкін - сонда төлем бақылаусыз қалады.
 _TASKS: set[asyncio.Task] = set()
 
 # (tg_id, drama_id) -> (url, invoice_id, қашан ескіреді)
@@ -63,7 +63,7 @@ def admin_chat_ids() -> set[int]:
 
 
 async def notify_admins(bot, text: str) -> None:
-    """Админдерге хабарлау. Жеткізілмесе — тек логқа."""
+    """Админдерге хабарлау. Жеткізілмесе - тек логқа."""
     for admin_id in admin_chat_ids():
         try:
             await bot.send_message(chat_id=admin_id, text=text)
@@ -82,7 +82,7 @@ async def _say(bot, chat_id: int, text: str, markup=None) -> bool:
 
 
 async def start_payment(bot, chat_id: int, tg_id: int, drama: Drama) -> None:
-    """Төлемді бастау. Бұрын төлеген болса — бірден қолжетімділік."""
+    """Төлемді бастау. Бұрын төлеген болса - бірден қолжетімділік."""
     if store.paid_purchase(tg_id, drama.id) is not None:
         await grant_access(bot, chat_id, tg_id, drama)
         return
@@ -129,7 +129,7 @@ async def _ensure_link(bot, chat_id: int, tg_id: int,
 
 async def watch_invoice(bot, chat_id: int, tg_id: int, drama_id: int,
                         invoice_id: str) -> None:
-    """Төлемді күту. Arzan webhook орнына — қарапайым сұрау циклі."""
+    """Төлемді күту. Arzan webhook орнына - қарапайым сұрау циклі."""
     loop = asyncio.get_running_loop()
     deadline = loop.time() + POLL_TIMEOUT_SEC
 
@@ -220,7 +220,7 @@ async def grant_access(bot, chat_id: int, tg_id: int, drama: Drama) -> bool:
 async def recover_pending(bot) -> int:
     """Бот өшіп тұрғанда өткен төлемдерді қуып жету.
 
-    Қайтаратыны — қолжетімділік берілген төлем саны.
+    Қайтаратыны - қолжетімділік берілген төлем саны.
     """
     pending = store.pending_purchases(60)
     if not pending:

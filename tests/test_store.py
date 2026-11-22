@@ -1,4 +1,4 @@
-"""bot.store — SQLite қоймасы."""
+"""bot.store - SQLite қоймасы."""
 
 from bot import store
 
@@ -82,4 +82,4 @@ def test_to_local_renders_almaty_time():
 
 
 def test_to_local_handles_missing_stamp():
-    assert store.to_local(None) == "—"
+    assert store.to_local(None) == "-"

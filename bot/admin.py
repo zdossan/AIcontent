@@ -1,6 +1,6 @@
 """Иесіне арналған командалар: сериал қосу, бөлімдерді тексеру, есеп.
 
-Админ емес адам бұл командаларға жауап алмайды — бот үндемейді.
+Админ емес адам бұл командаларға жауап алмайды - бот үндемейді.
 """
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ async def handle_new_step(message: Message, bot, state: FSMContext) -> None:
     async def say(text: str) -> None:
         await bot.send_message(chat_id=message.chat.id, text=text)
 
-    # Диалог ортасында команда жазса — шығамыз, әйтпесе иесі тұрып қалады.
+    # Диалог ортасында команда жазса - шығамыз, әйтпесе иесі тұрып қалады.
     if answer.startswith("/"):
         await state.clear()
         await say(texts.NEW_CANCELLED)
@@ -143,7 +143,7 @@ async def cmd_stats(message: Message, bot) -> None:
     lines = ["💰 <b>Сатылымдар</b>", ""]
     total = 0
     for title, count, amount in summary:
-        lines.append(f"{html.escape(title)}: {count} сатылым — {amount} ₸")
+        lines.append(f"{html.escape(title)}: {count} сатылым - {amount} ₸")
         total += amount
     lines.append("")
     lines.append(f"Барлығы: {total} ₸")

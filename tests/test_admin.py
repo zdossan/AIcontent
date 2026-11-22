@@ -1,4 +1,4 @@
-"""bot.admin — иесіне арналған командалар."""
+"""bot.admin - иесіне арналған командалар."""
 
 import pytest
 
@@ -61,7 +61,7 @@ async def test_export_sends_csv(fake_bot, db, drama, paid_user):
 
 
 async def test_command_during_dialog_cancels_it(fake_bot, db, fsm):
-    """Диалог ортасында /start жазса — иесі тұрып қалмауы керек."""
+    """Диалог ортасында /start жазса - иесі тұрып қалмауы керек."""
     await admin.cmd_new(make_message(ADMIN_ID, "/жаңа"), fake_bot, fsm)
     await admin.handle_new_step(make_message(ADMIN_ID, "/start"), fake_bot, fsm)
     assert await fsm.get_state() is None

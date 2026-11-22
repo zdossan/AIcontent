@@ -1,4 +1,4 @@
-"""bot.catalog — арнадағы посттардан бөлімдер жинау."""
+"""bot.catalog - арнадағы посттардан бөлімдер жинау."""
 
 import pytest
 
@@ -37,7 +37,7 @@ async def test_post_without_video_is_ignored(db, drama):
 
 
 async def test_unknown_channel_post_is_logged(db, caplog):
-    """Байланбаған арнадан келген кез келген пост логқа түсуі керек —
+    """Байланбаған арнадан келген кез келген пост логқа түсуі керек -
     әйтпесе «бот ештеңе алмай жатыр» дегенді тексеру мүмкін емес."""
     import logging
 

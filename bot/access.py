@@ -21,7 +21,7 @@ MEMBER_STATUSES = {"member", "administrator", "creator"}
 async def personal_invite(bot, channel_id: int, tg_id: int) -> str | None:
     """Бір адамға арналған, бір рет қолданылатын сілтеме.
 
-    Сәтсіз болса None қайтарады — шақырған жақ міндетті түрде өңдеуі керек:
+    Сәтсіз болса None қайтарады - шақырған жақ міндетті түрде өңдеуі керек:
     ақша төленген адам ештеңе алмай қалмауы тиіс.
     """
     try:
@@ -41,7 +41,7 @@ async def personal_invite(bot, channel_id: int, tg_id: int) -> str | None:
 
 
 async def is_member(bot, channel_id: int, tg_id: int) -> bool:
-    """Адам арнада отыр ма? Қате болса False — артық сілтеме беру қауіпсіз."""
+    """Адам арнада отыр ма? Қате болса False - артық сілтеме беру қауіпсіз."""
     try:
         member = await bot.get_chat_member(chat_id=channel_id, user_id=tg_id)
     except TelegramAPIError as err:

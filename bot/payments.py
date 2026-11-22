@@ -81,7 +81,7 @@ async def _request(method: str, path: str, *, payload: dict | None = None,
     async with aiohttp.ClientSession(timeout=TIMEOUT) as session:
         url = f"{_base_url()}{path}"
         async with session.request(method, url, json=payload, headers=hdrs) as resp:
-            # Kaspi-дің жауабында кейде жолішілік \n кездеседі — ол қатаң JSON
+            # Kaspi-дің жауабында кейде жолішілік \n кездеседі - ол қатаң JSON
             # үшін жарамсыз. Сондықтан strict=False арқылы оқимыз.
             raw = await resp.text()
             try:
@@ -109,7 +109,7 @@ async def create_payment_link(*, amount: int, description: str,
                               external_order_id: str) -> PaymentLink:
     """Сомасы бекітілген Kaspi төлем сілтемесін жасау.
 
-    Телефон нөмірі керек емес — қолданушы сілтемені басып, Kaspi-де
+    Телефон нөмірі керек емес - қолданушы сілтемені басып, Kaspi-де
     дайын соманы көреді. Сілтеме ~3 минуттан кейін ескіреді.
     """
     payload = {

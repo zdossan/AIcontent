@@ -1,6 +1,6 @@
 """Жабық арнадағы посттардан бөлімдер каталогын жинау.
 
-Иесі видеоны арнаға жүктейді, тақырыпқа бөлім нөмірін жазады — бот
+Иесі видеоны арнаға жүктейді, тақырыпқа бөлім нөмірін жазады - бот
 қалғанын өзі істейді. Арнаны сериалға байлау: арнада /bind <КОД>.
 """
 
@@ -25,7 +25,7 @@ NUMBER_RE = re.compile(r"\d+")
 def parse_episode_number(caption: str | None) -> int | None:
     """Тақырыптағы бірінші санды бөлім нөмірі деп аламыз.
 
-    «3», «3-бөлім», «Тең емес 7-бөлім» — бәрі жарайды.
+    «3», «3-бөлім», «Тең емес 7-бөлім» - бәрі жарайды.
     """
     if not caption:
         return None
@@ -51,7 +51,7 @@ async def handle_channel_post(message: Message) -> None:
     number = parse_episode_number(message.caption)
     if number is None:
         number = store.next_episode_number(drama.id)
-        log.warning("Тақырыпта нөмір жоқ — %s-бөлім деп жазылды (сериал %s)",
+        log.warning("Тақырыпта нөмір жоқ - %s-бөлім деп жазылды (сериал %s)",
                     number, drama.id)
 
     store.add_episode(drama.id, number, message.message_id)
@@ -100,13 +100,13 @@ async def log_channel_post(message: Message) -> None:
 
 @router.message(F.chat.type.in_(GROUP_TYPES), F.text.startswith("/bind"))
 async def handle_group_bind(message: Message, bot=None) -> None:
-    """Топта жазылған /bind — арнадағымен бірдей өңделеді."""
+    """Топта жазылған /bind - арнадағымен бірдей өңделеді."""
     await handle_bind(message, bot)
 
 
 @router.message(F.chat.type.in_(GROUP_TYPES), F.video)
 async def handle_group_post(message: Message) -> None:
-    """Топқа жүктелген видео — арнадағымен бірдей каталогқа түседі."""
+    """Топқа жүктелген видео - арнадағымен бірдей каталогқа түседі."""
     if message.chat.type not in GROUP_TYPES:
         return
     await handle_channel_post(message)

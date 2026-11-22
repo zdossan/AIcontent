@@ -1,4 +1,4 @@
-"""bot.payments — Arzan Pay клиенті. Нақты API шақырылмайды, жергілікті
+"""bot.payments - Arzan Pay клиенті. Нақты API шақырылмайды, жергілікті
 жалған сервер көтеріледі."""
 
 import pytest

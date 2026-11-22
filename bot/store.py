@@ -123,7 +123,7 @@ def _now() -> str:
 def to_local(stamp: str | None) -> str:
     """Қоймадағы UTC уақытын Алматы уақытына аудару."""
     if not stamp:
-        return "—"
+        return "-"
     naive = datetime.strptime(stamp, "%Y-%m-%d %H:%M:%S")
     return naive.replace(tzinfo=timezone.utc).astimezone(TZ).strftime("%d.%m.%Y %H:%M")
 
@@ -279,7 +279,7 @@ def episodes(drama_id: int) -> list[Episode]:
 
 
 def next_episode_number(drama_id: int) -> int:
-    """Тақырыпта нөмір болмаса — келесі бос нөмір."""
+    """Тақырыпта нөмір болмаса - келесі бос нөмір."""
     row = _db().execute("SELECT MAX(number) AS m FROM episodes WHERE drama_id = ?",
                         (drama_id,)).fetchone()
     return (row["m"] or 0) + 1
@@ -342,7 +342,7 @@ def paid_drama_ids(tg_id: int) -> set[int]:
 
 
 def pending_purchases(since_minutes: int) -> list[Purchase]:
-    """Соңғы N минуттағы аяқталмаған төлемдер — қайта қосылғанда тексеру үшін."""
+    """Соңғы N минуттағы аяқталмаған төлемдер - қайта қосылғанда тексеру үшін."""
     rows = _db().execute(
         "SELECT * FROM purchases WHERE status = 'pending'"
         " AND created_at >= datetime('now', ?)",

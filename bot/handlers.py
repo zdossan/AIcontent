@@ -22,7 +22,7 @@ async def ack(bot, callback: CallbackQuery) -> None:
     """Түймедегі «сағатты» өшіру.
 
     callback.answer() ботқа байланған объектіні талап етеді, сондықтан
-    әдісті боттан тікелей шақырамыз — хендлерлерді тестілеу жеңілдейді.
+    әдісті боттан тікелей шақырамыз - хендлерлерді тестілеу жеңілдейді.
     """
     try:
         await bot.answer_callback_query(callback_query_id=callback.id)
@@ -105,7 +105,7 @@ async def cb_episode(callback: CallbackQuery, bot) -> None:
 async def send_episode(bot, chat_id: int, drama: Drama, number: int) -> bool:
     """Бір бөлімді жабық арнадан көшіріп жіберу.
 
-    Тегін шектен асса — видео жіберілмейді, төлем ұсынылады.
+    Тегін шектен асса - видео жіберілмейді, төлем ұсынылады.
     protect_content=True: видеоны әрі қарай жіберуге болмайды.
     """
     if number > drama.free_episodes:

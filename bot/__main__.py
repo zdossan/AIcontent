@@ -1,4 +1,4 @@
-"""AIcontent боты — кіру нүктесі. Іске қосу: python -m bot"""
+"""AIcontent боты - кіру нүктесі. Іске қосу: python -m bot"""
 
 import asyncio
 import logging

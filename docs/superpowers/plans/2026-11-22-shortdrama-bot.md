@@ -1,35 +1,35 @@
-# Short drama бот — Implementation Plan
+# Short drama бот - Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Telegram-бот на казахском, который продаёт short drama: каталог сериалов, 6 бесплатных серий, оплата 490 ₸ через Arzan Pay и автоматическая выдача доступа в закрытый канал.
 
-**Architecture:** aiogram 3 на long polling, без входящих портов. Состояние в SQLite. Каждый сериал — отдельный закрытый канал, где бот админ: первые серии он копирует оттуда в личный чат через `copy_message(protect_content=True)`, а после оплаты выдаёт одноразовую инвайт-ссылку. Оплата подтверждается опросом Arzan Pay, пока платёжная ссылка жива (~3 мин).
+**Architecture:** aiogram 3 на long polling, без входящих портов. Состояние в SQLite. Каждый сериал - отдельный закрытый канал, где бот админ: первые серии он копирует оттуда в личный чат через `copy_message(protect_content=True)`, а после оплаты выдаёт одноразовую инвайт-ссылку. Оплата подтверждается опросом Arzan Pay, пока платёжная ссылка жива (~3 мин).
 
 **Tech Stack:** Python 3.12, aiogram 3.15.0, aiohttp, python-dotenv, SQLite (`sqlite3` из стандартной библиотеки), pytest + pytest-asyncio.
 
 **Spec:** `docs/superpowers/specs/2026-11-22-shortdrama-bot-design.md`
 
-**Донор кода:** `~/jabiq-invest-bot` — рабочий бот того же владельца. Переносятся `bot/payments.py` (клиент Arzan Pay) и `bot/group.py` (инвайт-ссылки), структура проекта и `deploy/`.
+**Донор кода:** `~/jabiq-invest-bot` - рабочий бот того же владельца. Переносятся `bot/payments.py` (клиент Arzan Pay) и `bot/group.py` (инвайт-ссылки), структура проекта и `deploy/`.
 
 ## Global Constraints
 
-- Python 3.12, aiogram 3.15.0, aiohttp, python-dotenv — версии как в `~/jabiq-invest-bot/requirements.txt`.
-- Весь текст, который видит пользователь, — на казахском и только в `bot/texts.py`. В остальных модулях строк для пользователя нет.
+- Python 3.12, aiogram 3.15.0, aiohttp, python-dotenv - версии как в `~/jabiq-invest-bot/requirements.txt`.
+- Весь текст, который видит пользователь, - на казахском и только в `bot/texts.py`. В остальных модулях строк для пользователя нет.
 - Цена, количество серий, число бесплатных серий и `channel_id` живут в БД, а не в `.env`.
-- Любая отправка видео пользователю — с `protect_content=True`.
+- Любая отправка видео пользователю - с `protect_content=True`.
 - Часовой пояс `Asia/Almaty` для всех отображаемых дат.
 - `.env`, `*.db`, `*.log`, `*.mp4` не коммитятся (`.gitignore` уже в репозитории).
-- Комментарии в коде — на казахском, как в `jabiq-invest-bot`.
+- Комментарии в коде - на казахском, как в `jabiq-invest-bot`.
 - Каждая задача завершается коммитом и `git push`.
 
 ## Review Focus
 
-1. **Двойной клик по кнопке оплаты** — создаются два счёта, человек платит дважды. Покрывается в Task 7.
-2. **Подпись видео без числа или повтор номера** — каталог молча ломается. Покрывается в Task 4.
-3. **Серий залито меньше, чем бесплатных** (3 из 6) — бот должен отдать что есть и не упасть. Покрывается в Task 6.
-4. **Бот не админ канала или без права приглашать** — оплата прошла, инвайт не создался. Покрывается в Task 5.
-5. **Человек заблокировал бота после оплаты** — доступ обязан сохраниться в базе и выдаться при возврате. Покрывается в Task 7.
+1. **Двойной клик по кнопке оплаты** - создаются два счёта, человек платит дважды. Покрывается в Task 7.
+2. **Подпись видео без числа или повтор номера** - каталог молча ломается. Покрывается в Task 4.
+3. **Серий залито меньше, чем бесплатных** (3 из 6) - бот должен отдать что есть и не упасть. Покрывается в Task 6.
+4. **Бот не админ канала или без права приглашать** - оплата прошла, инвайт не создался. Покрывается в Task 5.
+5. **Человек заблокировал бота после оплаты** - доступ обязан сохраниться в базе и выдаться при возврате. Покрывается в Task 7.
 
 ---
 
@@ -65,11 +65,11 @@ Expected: FAIL, `ModuleNotFoundError: bot.config`
 
 - [ ] **Step 3: Implement `bot/config.py`**
 
-Все функции читают `os.getenv` в момент вызова, не на уровне модуля — `.env` грузится позже импорта. Sandbox по умолчанию `true`: безопасный дефолт, пока владелец не переключит сам.
+Все функции читают `os.getenv` в момент вызова, не на уровне модуля - `.env` грузится позже импорта. Sandbox по умолчанию `true`: безопасный дефолт, пока владелец не переключит сам.
 
 - [ ] **Step 4: Создать `requirements.txt`, `.env.example`, `README.md`, заготовку `bot/texts.py`**
 
-`.env.example` — ключи `BOT_TOKEN`, `ARZAN_API_KEY`, `ARZAN_SANDBOX`, `ADMIN_IDS`, `DB_PATH` с комментариями на казахском (образец: `~/jabiq-invest-bot/.env.example`). `texts.py` пока содержит только `START_GREETING` и `HELP`.
+`.env.example` - ключи `BOT_TOKEN`, `ARZAN_API_KEY`, `ARZAN_SANDBOX`, `ADMIN_IDS`, `DB_PATH` с комментариями на казахском (образец: `~/jabiq-invest-bot/.env.example`). `texts.py` пока содержит только `START_GREETING` и `HELP`.
 
 - [ ] **Step 5: Run tests**
 
@@ -91,21 +91,21 @@ git add -A && git commit -m "Add project skeleton and settings loader" && git pu
 
 **Interfaces:**
 - Produces:
-  - `init_db(path: Path) -> None` — создаёт таблицы, идемпотентно
+  - `init_db(path: Path) -> None` - создаёт таблицы, идемпотентно
   - `create_drama(title, description, price_kzt, total_episodes, free_episodes) -> Drama`
   - `bind_channel(bind_code: str, channel_id: int) -> Drama | None`
-  - `active_dramas() -> list[Drama]` — только с `channel_id is not null`
+  - `active_dramas() -> list[Drama]` - только с `channel_id is not null`
   - `get_drama(drama_id: int) -> Drama | None`
   - `upsert_user(tg_id: int, username: str | None, first_name: str | None) -> None`
-  - `add_episode(drama_id: int, number: int, message_id: int) -> None` — upsert по `(drama_id, number)`
-  - `episodes(drama_id: int) -> list[Episode]` — по возрастанию номера
+  - `add_episode(drama_id: int, number: int, message_id: int) -> None` - upsert по `(drama_id, number)`
+  - `episodes(drama_id: int) -> list[Episode]` - по возрастанию номера
   - `create_purchase(tg_id, drama_id, invoice_id, amount) -> int`
   - `mark_paid(invoice_id: str) -> Purchase | None`
   - `paid_purchase(tg_id: int, drama_id: int) -> Purchase | None`
   - `paid_drama_ids(tg_id: int) -> set[int]`
   - `pending_purchases(since_minutes: int) -> list[Purchase]`
-  - `bump_invites(purchase_id: int) -> int` — возвращает новое значение `invites_sent`
-  - `sales_summary() -> list[tuple[str, int, int]]` — (название, количество, сумма)
+  - `bump_invites(purchase_id: int) -> int` - возвращает новое значение `invites_sent`
+  - `sales_summary() -> list[tuple[str, int, int]]` - (название, количество, сумма)
   - `export_rows() -> list[dict]`
 - Датаклассы `Drama`, `Episode`, `Purchase` с полями из схемы спецификации.
 
@@ -152,7 +152,7 @@ Run: `.venv/bin/pytest tests/test_store.py -v` → FAIL
 
 - [ ] **Step 3: Implement `bot/store.py`**
 
-Схема таблиц — из спецификации. `bind_code` — 6 символов `A-Z0-9`, уникальный. Уникальный индекс на `(drama_id, number)` в `episodes` и частичный уникальный индекс на `(tg_id, drama_id) WHERE status='paid'` в `purchases` — страховка от двойной оплаты на уровне базы. Все вызовы синхронные, оборачиваются в `asyncio.to_thread` на стороне обработчиков; запись под `threading.Lock`.
+Схема таблиц - из спецификации. `bind_code` - 6 символов `A-Z0-9`, уникальный. Уникальный индекс на `(drama_id, number)` в `episodes` и частичный уникальный индекс на `(tg_id, drama_id) WHERE status='paid'` в `purchases` - страховка от двойной оплаты на уровне базы. Все вызовы синхронные, оборачиваются в `asyncio.to_thread` на стороне обработчиков; запись под `threading.Lock`.
 
 - [ ] **Step 4: Run tests** → PASS
 - [ ] **Step 5: Commit**
@@ -178,7 +178,7 @@ git add -A && git commit -m "Add SQLite store for dramas, episodes and purchases
 cp ~/jabiq-invest-bot/bot/payments.py bot/payments.py
 ```
 
-Удалить неиспользуемые `create_invoice` и `normalize_phone` — оплата идёт только по ссылке, телефон не запрашивается (YAGNI).
+Удалить неиспользуемые `create_invoice` и `normalize_phone` - оплата идёт только по ссылке, телефон не запрашивается (YAGNI).
 
 - [ ] **Step 2: Write the failing test**
 
@@ -200,7 +200,7 @@ def test_invoice_expired_is_final_but_not_paid():
     assert inv.is_final and not inv.is_paid
 ```
 
-`fake_api` — локальный aiohttp-сервер, `ARZAN_BASE_URL` указывает на него.
+`fake_api` - локальный aiohttp-сервер, `ARZAN_BASE_URL` указывает на него.
 
 - [ ] **Step 3: Run test to verify it fails**
 
@@ -208,7 +208,7 @@ Run: `.venv/bin/pytest tests/test_payments.py -v` → FAIL, `check_many` не о
 
 - [ ] **Step 4: Implement `check_many(ids: list[str]) -> dict[str, str]` в `bot/payments.py`**
 
-`POST /v1/invoices/status/check` с телом `{"ids": [...]}`. В словарь попадают только записи с `ok: true`; значение — `payment.status`.
+`POST /v1/invoices/status/check` с телом `{"ids": [...]}`. В словарь попадают только записи с `ok: true`; значение - `payment.status`.
 
 - [ ] **Step 5: Run tests** → PASS
 - [ ] **Step 6: Commit**
@@ -271,7 +271,7 @@ git add -A && git commit -m "Collect episodes from channel posts and bind channe
 ### Task 5: Доступ в канал
 
 **Files:**
-- Create: `bot/access.py` (основа — `~/jabiq-invest-bot/bot/group.py`)
+- Create: `bot/access.py` (основа - `~/jabiq-invest-bot/bot/group.py`)
 - Test: `tests/test_access.py`
 
 **Interfaces:**
@@ -348,11 +348,11 @@ async def test_free_episodes_sends_what_exists(fake_bot, db, drama_with_3_episod
 - [ ] **Step 2: Run test to verify it fails** → FAIL
 - [ ] **Step 3: Implement `/start`, карточку сериала и выдачу бесплатных серий**
 
-`/start` зовёт `upsert_user` и строит клавиатуру из `active_dramas()`; купленные помечаются `✅`. Карточка сериала — название, описание, число серий, цена, кнопки `🎬 Тегін көру` / `💳 Толық нұсқа — {price} ₸` / `⬅️ Артқа`. `send_free_episodes` копирует серии с номерами `1..free_episodes` через `copy_message(protect_content=True)`; отсутствующие пропускает. Если отправлено меньше, чем `free_episodes`, пользователь видит `texts.EPISODES_SOON`, а админу уходит уведомление. После последней серии — тизер `texts.PAYWALL` с кнопкой оплаты.
+`/start` зовёт `upsert_user` и строит клавиатуру из `active_dramas()`; купленные помечаются `✅`. Карточка сериала - название, описание, число серий, цена, кнопки `🎬 Тегін көру` / `💳 Толық нұсқа - {price} ₸` / `⬅️ Артқа`. `send_free_episodes` копирует серии с номерами `1..free_episodes` через `copy_message(protect_content=True)`; отсутствующие пропускает. Если отправлено меньше, чем `free_episodes`, пользователь видит `texts.EPISODES_SOON`, а админу уходит уведомление. После последней серии - тизер `texts.PAYWALL` с кнопкой оплаты.
 
 - [ ] **Step 4: Написать `bot/__main__.py`**
 
-Образец — `~/jabiq-invest-bot/bot/__main__.py`: загрузка `.env`, `init_db`, подключение роутеров, `delete_webhook(drop_pending_updates=False)`, `start_polling`.
+Образец - `~/jabiq-invest-bot/bot/__main__.py`: загрузка `.env`, `init_db`, подключение роутеров, `delete_webhook(drop_pending_updates=False)`, `start_polling`.
 
 - [ ] **Step 5: Run tests** → PASS
 - [ ] **Step 6: Commit**
@@ -426,13 +426,13 @@ async def test_invite_limit_reached(fake_bot, db, drama, paid_user):
 - [ ] **Step 2: Run test to verify it fails** → FAIL
 - [ ] **Step 3: Implement `bot/billing.py`**
 
-`start_payment`: если `paid_purchase` есть — сразу `grant_access` без счёта; иначе берёт живую ссылку из кэша `(tg_id, drama_id) -> (url, invoice_id, deadline)` или создаёт новую с `external_order_id = f"d{drama_id}-u{tg_id}-{uuid4().hex[:8]}"`, пишет `create_purchase` и запускает `watch_invoice` фоновой задачей.
+`start_payment`: если `paid_purchase` есть - сразу `grant_access` без счёта; иначе берёт живую ссылку из кэша `(tg_id, drama_id) -> (url, invoice_id, deadline)` или создаёт новую с `external_order_id = f"d{drama_id}-u{tg_id}-{uuid4().hex[:8]}"`, пишет `create_purchase` и запускает `watch_invoice` фоновой задачей.
 
 `watch_invoice`: опрос `get_invoice` раз в 3 секунды, пока не истечёт ~200 секунд. `paid` → `mark_paid` и `grant_access`; `expired`/`failed`/`canceled` → сообщение с кнопкой `🔄 Жаңа сілтеме`. Сетевая ошибка не прерывает цикл.
 
-`grant_access`: порядок жёсткий — сначала `mark_paid`, потом инвайт. Если `is_member` уже `True` — сообщение, что доступ есть. `bump_invites` > 5 → `False` и просьба написать админу. Если `personal_invite` вернул `None` или отправка упала — покупка остаётся `paid`, в лог и админу уходит `tg_id` с названием сериала, пользователю (если достижим) — кнопка `🔄 Қайта көру`.
+`grant_access`: порядок жёсткий - сначала `mark_paid`, потом инвайт. Если `is_member` уже `True` - сообщение, что доступ есть. `bump_invites` > 5 → `False` и просьба написать админу. Если `personal_invite` вернул `None` или отправка упала - покупка остаётся `paid`, в лог и админу уходит `tg_id` с названием сериала, пользователю (если достижим) - кнопка `🔄 Қайта көру`.
 
-`recover_pending`: при старте берёт `pending_purchases(60)`, один вызов `check_many`, по оплаченным — `grant_access`. Вызывается из `__main__` после `init_db`.
+`recover_pending`: при старте берёт `pending_purchases(60)`, один вызов `check_many`, по оплаченным - `grant_access`. Вызывается из `__main__` после `init_db`.
 
 - [ ] **Step 4: Добавить кнопку `👤 Менің сериалдарым` в `bot/handlers.py`**
 
@@ -445,7 +445,7 @@ async def test_my_dramas_lists_only_paid(fake_bot, db, drama, other_drama, paid_
     assert [b.text for row in kb.inline_keyboard for b in row] == ["Тең емес", "⬅️ Артқа"]
 ```
 
-Кнопка в главном меню: показывает купленные сериалы, по нажатию на любой — `grant_access`, то есть свежая одноразовая ссылка с тем же лимитом в 5 выдач. Если покупок нет — `texts.NO_PURCHASES`.
+Кнопка в главном меню: показывает купленные сериалы, по нажатию на любой - `grant_access`, то есть свежая одноразовая ссылка с тем же лимитом в 5 выдач. Если покупок нет - `texts.NO_PURCHASES`.
 
 - [ ] **Step 5: Run tests** → PASS
 - [ ] **Step 6: Commit**
@@ -494,7 +494,7 @@ async def test_bolimder_reports_missing_episodes(fake_bot, db, drama):
 - [ ] **Step 2: Run test to verify it fails** → FAIL
 - [ ] **Step 3: Implement `bot/admin.py`**
 
-Фильтр по `config.admin_ids()` на весь роутер; не-админ не получает ответа вовсе. `/жаңа` — FSM на пять шагов (название, описание, цена, всего серий, бесплатных), числовые шаги переспрашивают при нечисловом вводе, в конце бот отдаёт `bind_code` и инструкцию, что делать с каналом. `/bolimder` перечисляет сериалы с диапазоном загруженных серий и явно называет пропущенные номера. `/stats` — продажи и выручка по сериалам. `/export` — CSV через `send_document`.
+Фильтр по `config.admin_ids()` на весь роутер; не-админ не получает ответа вовсе. `/жаңа` - FSM на пять шагов (название, описание, цена, всего серий, бесплатных), числовые шаги переспрашивают при нечисловом вводе, в конце бот отдаёт `bind_code` и инструкцию, что делать с каналом. `/bolimder` перечисляет сериалы с диапазоном загруженных серий и явно называет пропущенные номера. `/stats` - продажи и выручка по сериалам. `/export` - CSV через `send_document`.
 
 - [ ] **Step 4: Run tests** → PASS
 - [ ] **Step 5: Commit**
@@ -520,7 +520,7 @@ git add -A && git commit -m "Add admin commands for dramas, stats and export" &&
 cp ~/jabiq-invest-bot/deploy/*.sh ~/jabiq-invest-bot/deploy/jabiq-bot.service deploy/
 ```
 
-Переименовать юнит в `aicontent-bot.service`, путь — `/opt/aicontent-bot`, заменить упоминания jabiq. `Restart=always`, `RestartSec=5`.
+Переименовать юнит в `aicontent-bot.service`, путь - `/opt/aicontent-bot`, заменить упоминания jabiq. `Restart=always`, `RestartSec=5`.
 
 - [ ] **Step 2: Прогнать весь набор тестов локально**
 

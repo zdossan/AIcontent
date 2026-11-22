@@ -1,4 +1,4 @@
-"""bot.config — баптаулар .env-тен дұрыс оқылуын тексеру."""
+"""bot.config - баптаулар .env-тен дұрыс оқылуын тексеру."""
 
 from bot import config
 

@@ -1,4 +1,4 @@
-"""bot.handlers — сатып алынған сериалдар және төлем түймесі."""
+"""bot.handlers - сатып алынған сериалдар және төлем түймесі."""
 
 from bot import handlers, store
 from tests.conftest import make_callback

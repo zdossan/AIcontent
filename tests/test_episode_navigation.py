@@ -31,7 +31,7 @@ async def test_middle_episode_has_both_buttons(fake_bot, db, drama_with_26_episo
 
 
 async def test_last_free_episode_offers_payment(fake_bot, db, drama_with_26_episodes):
-    """6-бөлім — соңғы тегін. Одан әрі тек төлем арқылы."""
+    """6-бөлім - соңғы тегін. Одан әрі тек төлем арқылы."""
     d = drama_with_26_episodes
     await handlers.cb_episode(make_callback(7, f"ep:{d.id}:6"), fake_bot)
     assert "💳" in " ".join(labels(fake_bot.calls["copy_message"][0]["reply_markup"]))
@@ -48,11 +48,11 @@ async def test_paid_episode_is_not_sent_for_free(fake_bot, db, drama_with_26_epi
 async def test_episode_caption_shows_position(fake_bot, db, drama_with_26_episodes):
     d = drama_with_26_episodes
     await handlers.cb_episode(make_callback(7, f"ep:{d.id}:3"), fake_bot)
-    assert fake_bot.calls["copy_message"][0]["caption"] == "«Тең емес» — 3 / 26 бөлім"
+    assert fake_bot.calls["copy_message"][0]["caption"] == "«Тең емес» - 3 / 26 бөлім"
 
 
 async def test_missing_episode_is_reported(fake_bot, db, drama_with_3_episodes):
-    """Жүктелмеген бөлімді сұраса — түсінікті жауап."""
+    """Жүктелмеген бөлімді сұраса - түсінікті жауап."""
     d = drama_with_3_episodes
     await handlers.cb_episode(make_callback(7, f"ep:{d.id}:5"), fake_bot)
     assert "copy_message" not in fake_bot.calls
