@@ -93,13 +93,28 @@ async def cb_free(callback: CallbackQuery, bot) -> None:
 
 @router.callback_query(F.data.startswith("ep:"))
 async def cb_episode(callback: CallbackQuery, bot) -> None:
-    """«Алдыға» / «Артқа» түймелері."""
+    """«Алдыға» / «Артқа» түймелері.
+
+    Жаңа бөлім жіберілген соң ескісі чаттан өшіріледі - сонда чатта
+    әрқашан бір ғана бөлім тұрады.
+    """
     await ack(bot, callback)
     _, drama_id, number = callback.data.split(":")
     drama = store.get_drama(int(drama_id))
     if drama is None:
         return
-    await send_episode(bot, callback.message.chat.id, drama, int(number))
+
+    sent = await send_episode(bot, callback.message.chat.id, drama, int(number))
+    if sent:
+        await _remove(bot, callback.message.chat.id, callback.message.message_id)
+
+
+async def _remove(bot, chat_id: int, message_id: int) -> None:
+    """Ескі бөлімді өшіру. Өшірілмесе де жұмыс тоқтамайды."""
+    try:
+        await bot.delete_message(chat_id=chat_id, message_id=message_id)
+    except TelegramAPIError as err:
+        log.debug("Ескі бөлім өшірілмеді: %s", err)
 
 
 async def send_episode(bot, chat_id: int, drama: Drama, number: int) -> bool:

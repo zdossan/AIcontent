@@ -57,3 +57,28 @@ async def test_missing_episode_is_reported(fake_bot, db, drama_with_3_episodes):
     await handlers.cb_episode(make_callback(7, f"ep:{d.id}:5"), fake_bot)
     assert "copy_message" not in fake_bot.calls
     assert fake_bot.last_text()
+
+
+async def test_next_episode_replaces_previous_message(fake_bot, db,
+                                                      drama_with_26_episodes):
+    """«Алдыға» басқанда ескі бөлім чаттан өшіп, орнына жаңасы келеді."""
+    d = drama_with_26_episodes
+    await handlers.cb_episode(make_callback(7, f"ep:{d.id}:2"), fake_bot)
+    assert fake_bot.calls["delete_message"][0]["message_id"] == 1
+    assert fake_bot.calls["copy_message"][0]["message_id"] == 11
+
+
+async def test_first_episode_does_not_delete_the_menu(fake_bot, db,
+                                                      drama_with_26_episodes):
+    """«Тегін көру» мәзір хабарламасын өшірмейді - ол бөлім емес."""
+    d = drama_with_26_episodes
+    await handlers.cb_free(make_callback(7, f"free:{d.id}"), fake_bot)
+    assert "delete_message" not in fake_bot.calls
+
+
+async def test_episode_still_protected_after_switch(fake_bot, db,
+                                                    drama_with_26_episodes):
+    """Ауыстырғаннан кейін де видеоны жіберуге тыйым сақталады."""
+    d = drama_with_26_episodes
+    await handlers.cb_episode(make_callback(7, f"ep:{d.id}:4"), fake_bot)
+    assert fake_bot.calls["copy_message"][0]["protect_content"] is True
