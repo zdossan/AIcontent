@@ -9,12 +9,24 @@ from aiogram.exceptions import TelegramAPIError
 from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, Message
 
-from bot import keyboards, store, texts
+from bot import billing, keyboards, store, texts
 from bot.store import Drama
 
 log = logging.getLogger(__name__)
 
 router = Router(name="handlers")
+
+
+async def ack(bot, callback: CallbackQuery) -> None:
+    """Түймедегі «сағатты» өшіру.
+
+    callback.answer() ботқа байланған объектіні талап етеді, сондықтан
+    әдісті боттан тікелей шақырамыз — хендлерлерді тестілеу жеңілдейді.
+    """
+    try:
+        await bot.answer_callback_query(callback_query_id=callback.id)
+    except TelegramAPIError as err:
+        log.debug("callback жауабы жіберілмеді: %s", err)
 
 
 async def show_catalog(bot, chat_id: int, tg_id: int) -> None:
@@ -37,13 +49,13 @@ async def cmd_start(message: Message, bot) -> None:
 
 @router.callback_query(F.data == "back")
 async def cb_back(callback: CallbackQuery, bot) -> None:
-    await callback.answer()
+    await ack(bot, callback)
     await show_catalog(bot, callback.message.chat.id, callback.from_user.id)
 
 
 @router.callback_query(F.data == "help")
 async def cb_help(callback: CallbackQuery, bot) -> None:
-    await callback.answer()
+    await ack(bot, callback)
     await bot.send_message(callback.message.chat.id, texts.HELP,
                            reply_markup=keyboards.back_kb())
 
@@ -51,7 +63,7 @@ async def cb_help(callback: CallbackQuery, bot) -> None:
 @router.callback_query(F.data.startswith("drama:"))
 async def cb_drama(callback: CallbackQuery, bot) -> None:
     """Сериал картасы."""
-    await callback.answer()
+    await ack(bot, callback)
     drama = store.get_drama(int(callback.data.split(":")[1]))
     if drama is None:
         await show_catalog(bot, callback.message.chat.id, callback.from_user.id)
@@ -70,7 +82,7 @@ async def cb_drama(callback: CallbackQuery, bot) -> None:
 @router.callback_query(F.data.startswith("free:"))
 async def cb_free(callback: CallbackQuery, bot) -> None:
     """Тегін бөлімдерді жіберу."""
-    await callback.answer()
+    await ack(bot, callback)
     drama = store.get_drama(int(callback.data.split(":")[1]))
     if drama is None:
         return
@@ -112,3 +124,39 @@ async def send_free_episodes(bot, chat_id: int, drama: Drama) -> int:
             continue
         sent += 1
     return sent
+
+
+@router.callback_query(F.data.startswith("pay:"))
+async def cb_pay(callback: CallbackQuery, bot) -> None:
+    """Төлемді бастау немесе жаңа сілтеме беру."""
+    await ack(bot, callback)
+    drama = store.get_drama(int(callback.data.split(":")[1]))
+    if drama is None:
+        return
+    await billing.start_payment(bot, callback.message.chat.id,
+                                callback.from_user.id, drama)
+
+
+@router.callback_query(F.data == "my")
+async def cb_my_dramas(callback: CallbackQuery, bot) -> None:
+    """Сатып алынған сериалдар тізімі."""
+    await ack(bot, callback)
+    paid = store.paid_drama_ids(callback.from_user.id)
+    dramas = [d for d in store.active_dramas() if d.id in paid]
+    if not dramas:
+        await bot.send_message(callback.message.chat.id, texts.NO_PURCHASES,
+                               reply_markup=keyboards.back_kb())
+        return
+    await bot.send_message(callback.message.chat.id, texts.MY_DRAMAS,
+                           reply_markup=keyboards.my_dramas_kb(dramas))
+
+
+@router.callback_query(F.data.startswith("access:"))
+async def cb_access(callback: CallbackQuery, bot) -> None:
+    """Сатып алынған сериалға жаңа сілтеме."""
+    await ack(bot, callback)
+    drama = store.get_drama(int(callback.data.split(":")[1]))
+    if drama is None:
+        return
+    await billing.grant_access(bot, callback.message.chat.id,
+                               callback.from_user.id, drama)

@@ -45,3 +45,32 @@ def pay_kb(drama: Drama) -> InlineKeyboardMarkup:
 def back_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=texts.BTN_BACK, callback_data="back")]])
+
+
+def kaspi_kb(url: str) -> InlineKeyboardMarkup:
+    """Kaspi төлем сілтемесі."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=texts.BTN_PAY_NOW, url=url)]])
+
+
+def new_link_kb(drama_id: int) -> InlineKeyboardMarkup:
+    """Сілтеме ескіргенде — жаңасын сұрау."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=texts.BTN_NEW_LINK,
+                              callback_data=f"pay:{drama_id}")],
+        [InlineKeyboardButton(text=texts.BTN_BACK, callback_data="back")]])
+
+
+def retry_kb(drama_id: int) -> InlineKeyboardMarkup:
+    """Сілтеме жасалмағанда — қайталау."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=texts.BTN_RETRY,
+                              callback_data=f"access:{drama_id}")]])
+
+
+def my_dramas_kb(dramas: list[Drama]) -> InlineKeyboardMarkup:
+    """Сатып алынған сериалдар — әрқайсысына жаңа сілтеме."""
+    rows = [[InlineKeyboardButton(text=d.title, callback_data=f"access:{d.id}")]
+            for d in dramas]
+    rows.append([InlineKeyboardButton(text=texts.BTN_BACK, callback_data="back")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)

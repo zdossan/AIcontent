@@ -9,7 +9,7 @@ from aiogram.enums import ParseMode
 from aiogram.types import BotCommand
 from dotenv import load_dotenv
 
-from bot import catalog, config, handlers, store
+from bot import billing, catalog, config, handlers, store
 
 
 async def main() -> None:
@@ -29,11 +29,17 @@ async def main() -> None:
     dp.include_router(handlers.router)
     dp.include_router(catalog.router)
 
+    # Бот өшіп тұрғанда өткен төлемдерді қуып жетеміз.
+    recovered = await billing.recover_pending(bot)
+    if recovered:
+        logging.info("Қайта қосылғаннан кейін %s төлем өңделді", recovered)
+
     # drop_pending_updates=False: бот өшіп тұрғанда жіберілген /start жоғалмайды
     await bot.delete_webhook(drop_pending_updates=False)
     try:
         await dp.start_polling(bot)
     finally:
+        await billing.shutdown()
         store.close()
 
 

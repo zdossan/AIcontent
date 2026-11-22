@@ -27,13 +27,40 @@ async def fake_arzan(monkeypatch):
         def reply(self, path, body, status=200):
             self.routes[path] = (body, status)
 
+        @property
+        def created_links(self):
+            return [b for p, b in self.requests if p == "/v1/payment-links"]
+
     fake = Fake()
+
+    fake.invoice_status = "pending"
+    fake.batch: dict[str, str] = {}
 
     async def handler(request):
         body = await request.json() if request.can_read_body else {}
         fake.requests.append((request.path, body))
-        payload, status = fake.routes.get(request.path, ({}, 404))
-        return web.json_response(payload, status=status)
+
+        if request.path in fake.routes:
+            payload, status = fake.routes[request.path]
+            return web.json_response(payload, status=status)
+
+        if request.path == "/v1/payment-links":
+            return web.json_response({
+                "id": "qr_test", "payment_url": "https://pay.kaspi.kz/pay/TEST",
+                "amount": "490.00", "expires_at": "2026-11-22T14:15:00.000Z"},
+                status=201)
+
+        if request.path == "/v1/invoices/status/check":
+            return web.json_response({"data": [
+                {"id": i, "ok": True, "payment": {"status": s}}
+                for i, s in fake.batch.items()]})
+
+        if request.path.startswith("/v1/invoices/"):
+            return web.json_response({
+                "id": request.path.rsplit("/", 1)[-1],
+                "status": fake.invoice_status, "amount": "490.00"})
+
+        return web.json_response({}, status=404)
 
     app = web.Application()
     app.router.add_route("*", "/{tail:.*}", handler)
@@ -113,6 +140,9 @@ class FakeBot:
             return ChatMemberOwner(user=user, is_anonymous=False)
         return ChatMemberLeft(user=user)
 
+    async def answer_callback_query(self, **kwargs):
+        self._record("answer_callback_query", kwargs)
+
     async def copy_message(self, **kwargs):
         self._record("copy_message", kwargs)
 
@@ -182,3 +212,16 @@ def paid_user(drama):
     store.create_purchase(tg_id, drama.id, "qr_paid", drama.price_kzt)
     store.mark_paid("qr_paid")
     return tg_id
+
+
+def make_callback(tg_id: int, data: str):
+    """Түймені басқандағы нақты callback."""
+    from aiogram.types import CallbackQuery, User
+
+    return CallbackQuery(
+        id="cb1",
+        from_user=User(id=tg_id, is_bot=False, first_name="Аян", username="ayan"),
+        chat_instance="ci",
+        data=data,
+        message=make_message(tg_id, text="menu"),
+    )
