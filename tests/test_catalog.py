@@ -34,3 +34,13 @@ async def test_repeated_number_overwrites_message_id(db, drama):
 async def test_post_without_video_is_ignored(db, drama):
     await catalog.handle_channel_post(make_post(drama.channel_id, "5", 50, video=False))
     assert store.episodes(drama.id) == []
+
+
+async def test_unknown_channel_post_is_logged(db, caplog):
+    """Байланбаған арнадан келген кез келген пост логқа түсуі керек —
+    әйтпесе «бот ештеңе алмай жатыр» дегенді тексеру мүмкін емес."""
+    import logging
+
+    with caplog.at_level(logging.INFO, logger="bot.catalog"):
+        await catalog.log_channel_post(make_post(-100777, "сәлем", 1, video=False))
+    assert "-100777" in caplog.text

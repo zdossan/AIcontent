@@ -74,3 +74,15 @@ async def handle_bind(message: Message) -> None:
         await message.delete()
     except TelegramAPIError as err:
         log.warning("Байлау хабарламасы өшірілмеді: %s", err)
+
+
+@router.channel_post()
+async def log_channel_post(message: Message) -> None:
+    """Басқа хендлерге түспеген арна посттарын логқа жазу.
+
+    «Бот арнадан ештеңе алмай жатыр ма, әлде пост жарамсыз ба?» деген
+    сұрақты тек осы лог арқылы айыруға болады.
+    """
+    log.info("Арна посты: chat=%s (%s), тақырып=%r, видео=%s",
+             message.chat.id, message.chat.title,
+             message.caption or message.text, message.video is not None)
