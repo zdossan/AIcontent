@@ -14,7 +14,7 @@ import uuid
 
 from aiogram.exceptions import TelegramAPIError
 
-from bot import access, config, keyboards, payments, store, texts
+from bot import access, config, keyboards, payments, sheets, store, texts
 from bot.store import Drama
 
 log = logging.getLogger(__name__)
@@ -166,12 +166,26 @@ async def _on_paid(bot, chat_id: int, tg_id: int, drama_id: int,
                    invoice_id: str) -> None:
     """Ақша түсті: алдымен базаға, сосын сілтеме."""
     log.info("Төлем өтті: user=%s шот=%s", tg_id, invoice_id)
-    store.mark_paid(invoice_id)
+    purchase = store.mark_paid(invoice_id)
     drama = store.get_drama(drama_id)
     if drama is None:
         log.error("Төленген сериал табылмады: %s", drama_id)
         return
+    await _record_sale(purchase, drama)
     await grant_access(bot, chat_id, tg_id, drama)
+
+
+async def _record_sale(purchase, drama) -> None:
+    """Сатылымды Google кестесіне қосу. Кесте - қосымша, міндет емес."""
+    if purchase is None:
+        return
+    user = store.get_user(purchase.tg_id) or {}
+    try:
+        await sheets.append_sale(purchase, drama, user.get("username"),
+                                 user.get("first_name"))
+    except Exception:
+        log.exception("Кестеге жазу кезінде күтпеген қате (шот %s)",
+                      purchase.invoice_id)
 
 
 async def grant_access(bot, chat_id: int, tg_id: int, drama: Drama) -> bool:
@@ -237,9 +251,10 @@ async def recover_pending(bot) -> int:
         if statuses.get(purchase.invoice_id) != "paid":
             continue
         log.info("Қайта қосылғаннан кейін төлем табылды: %s", purchase.invoice_id)
-        store.mark_paid(purchase.invoice_id)
+        updated = store.mark_paid(purchase.invoice_id)
         drama = store.get_drama(purchase.drama_id)
         if drama is not None:
+            await _record_sale(updated, drama)
             await grant_access(bot, purchase.tg_id, purchase.tg_id, drama)
         recovered += 1
     return recovered

@@ -256,6 +256,11 @@ def upsert_user(tg_id: int, username: str | None, first_name: str | None) -> Non
         db.commit()
 
 
+def get_user(tg_id: int) -> dict | None:
+    row = _db().execute("SELECT * FROM users WHERE tg_id = ?", (tg_id,)).fetchone()
+    return dict(row) if row else None
+
+
 # --- Бөлімдер ----------------------------------------------------------
 
 

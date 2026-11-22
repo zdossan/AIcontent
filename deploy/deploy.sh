@@ -32,6 +32,12 @@ rsync -az --delete "${RSYNC_ROOT[@]}" \
 echo "==> .env жіберу"
 rsync -az "${RSYNC_ROOT[@]}" "$HERE/.env" "$TARGET:$APP_DIR/.env"
 
+if [[ -f "$HERE/google-credentials.json" ]]; then
+    echo "==> Google service account кілтін жіберу"
+    rsync -az "${RSYNC_ROOT[@]}" "$HERE/google-credentials.json" \
+        "$TARGET:$APP_DIR/google-credentials.json"
+fi
+
 echo "==> systemd сервисін жіберу"
 rsync -az "${RSYNC_ROOT[@]}" "$HERE/deploy/aicontent-bot.service" \
     "$TARGET:/etc/systemd/system/aicontent-bot.service"
@@ -46,6 +52,7 @@ ssh "$TARGET" sudo bash -euo pipefail <<REMOTE
     .venv/bin/pip install --quiet -r requirements.txt
     chown -R $APP_USER:$APP_USER $APP_DIR
     chmod 600 $APP_DIR/.env
+    [[ -f $APP_DIR/google-credentials.json ]] && chmod 600 $APP_DIR/google-credentials.json
 
     systemctl daemon-reload
     systemctl enable --now aicontent-bot
