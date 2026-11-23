@@ -125,3 +125,36 @@ def test_finished_free_counts_only_those_who_reached_the_last_free(db, drama):
     store.mark_viewed(8, drama.id, 5)
     store.mark_viewed(9, drama.id, 6)
     assert store.finished_free_count() == 2
+
+
+def _pay(drama_id, tg_id, invoice, paid_at_sql):
+    """Берілген уақытта төленген сатып алу жасау (UTC)."""
+    store.create_purchase(tg_id, drama_id, invoice, 490)
+    store._db().execute(
+        f"UPDATE purchases SET status='paid', paid_at={paid_at_sql}"
+        " WHERE invoice_id = ?", (invoice,))
+    store._db().commit()
+
+
+def test_sales_periods_splits_today_month_and_total(db, drama):
+    _pay(drama.id, 1, "qr_now", "datetime('now')")
+    _pay(drama.id, 2, "qr_week", "datetime('now', '-8 days')")
+    _pay(drama.id, 3, "qr_year", "datetime('now', '-400 days')")
+    stats = store.sales_periods()
+    assert stats["today"] == (1, 490)
+    assert stats["total"] == (3, 1470)
+
+
+def test_sales_periods_counts_almaty_day_not_utc(db, drama):
+    """Алматы түн ортасынан кейінгі төлем бүгінге жатуы керек.
+
+    Алматы UTC+5: жергілікті 02:00 - бұл UTC бойынша кеше 21:00.
+    """
+    _pay(drama.id, 1, "qr_local",
+         "strftime('%Y-%m-%d %H:%M:%S', date('now', '+5 hours') || ' 02:30:00', '-5 hours')")
+    assert store.sales_periods()["today"][0] == 1
+
+
+def test_sales_periods_ignores_unpaid(db, drama):
+    store.create_purchase(9, drama.id, "qr_pending", 490)
+    assert store.sales_periods()["total"] == (0, 0)

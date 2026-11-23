@@ -52,7 +52,7 @@ async def test_bolimder_reports_missing_episodes(fake_bot, db, drama):
 async def test_stats_shows_sales(fake_bot, db, drama, paid_user):
     await admin.cmd_stats(make_message(ADMIN_ID, "/stats"), fake_bot)
     text = fake_bot.last_text()
-    assert "Тең емес" in text and "490" in text
+    assert "490" in text and "Барлық уақытта: 1" in text
 
 
 async def test_export_sends_csv(fake_bot, db, drama, paid_user):
@@ -138,3 +138,30 @@ async def test_stats_shows_funnel_step(fake_bot, db, drama_with_26_episodes):
     await admin.cmd_stats(make_message(ADMIN_ID, "/stats"), fake_bot)
     text = fake_bot.last_text()
     assert "аяқтағандар" in text.lower()
+
+
+async def test_stats_shows_payment_periods(fake_bot, db, drama, paid_user):
+    """Төлемдер бүгін / осы айда / барлық уақытта болып бөлінуі керек."""
+    await admin.cmd_stats(make_message(ADMIN_ID, "/stats"), fake_bot)
+    text = fake_bot.last_text()
+    assert "Бүгін" in text
+    assert "Осы айда" in text
+    assert "Барлық уақытта" in text
+
+
+async def test_stats_hides_per_drama_breakdown_for_single_drama(
+        fake_bot, db, drama, paid_user):
+    """Бір сериал болса, оны бөлек тізіп жазудың мағынасы жоқ."""
+    await admin.cmd_stats(make_message(ADMIN_ID, "/stats"), fake_bot)
+    assert fake_bot.last_text().count("Тең емес") == 0
+
+
+async def test_stats_shows_per_drama_breakdown_for_several(
+        fake_bot, db, drama, paid_user):
+    second = store.create_drama("Екінші", "", 990, 10, 3)
+    store.bind_channel(second.bind_code, -100555)
+    store.create_purchase(555, second.id, "qr_2", 990)
+    store.mark_paid("qr_2")
+    await admin.cmd_stats(make_message(ADMIN_ID, "/stats"), fake_bot)
+    text = fake_bot.last_text()
+    assert "Тең емес" in text and "Екінші" in text

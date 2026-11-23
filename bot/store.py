@@ -399,6 +399,38 @@ def bump_invites(purchase_id: int) -> int:
 # --- Есеп --------------------------------------------------------------
 
 
+# Алматы UTC+5. Қоймада уақыт UTC-пен жазылады, сондықтан күн шекарасын
+# есептеу үшін оған 5 сағат қосамыз.
+TZ_SHIFT = "+5 hours"
+
+
+def sales_periods() -> dict[str, tuple[int, int]]:
+    """Бүгінгі, осы айдағы және барлық уақыттағы төлемдер.
+
+    Әр мән - (саны, сомасы). Күн мен ай Алматы уақытымен есептеледі.
+    """
+    row = _db().execute(
+        "SELECT"
+        "  COUNT(*) AS all_cnt,"
+        "  COALESCE(SUM(amount), 0) AS all_sum,"
+        "  COALESCE(SUM(CASE WHEN date(paid_at, ?) = date('now', ?)"
+        "    THEN 1 ELSE 0 END), 0) AS day_cnt,"
+        "  COALESCE(SUM(CASE WHEN date(paid_at, ?) = date('now', ?)"
+        "    THEN amount ELSE 0 END), 0) AS day_sum,"
+        "  COALESCE(SUM(CASE WHEN strftime('%Y-%m', paid_at, ?)"
+        "    = strftime('%Y-%m', 'now', ?) THEN 1 ELSE 0 END), 0) AS month_cnt,"
+        "  COALESCE(SUM(CASE WHEN strftime('%Y-%m', paid_at, ?)"
+        "    = strftime('%Y-%m', 'now', ?) THEN amount ELSE 0 END), 0) AS month_sum"
+        " FROM purchases WHERE status = 'paid' AND paid_at IS NOT NULL",
+        (TZ_SHIFT,) * 8,
+    ).fetchone()
+    return {
+        "today": (row["day_cnt"], row["day_sum"]),
+        "month": (row["month_cnt"], row["month_sum"]),
+        "total": (row["all_cnt"], row["all_sum"]),
+    }
+
+
 def sales_summary() -> list[tuple[str, int, int]]:
     """(сериал атауы, сатылым саны, жалпы сома)."""
     rows = _db().execute(
