@@ -75,6 +75,14 @@ CREATE TABLE IF NOT EXISTS views (
     PRIMARY KEY (tg_id, drama_id)
 );
 
+-- Кімге еске салу жіберілгені: екінші рет мазаламау үшін.
+CREATE TABLE IF NOT EXISTS reminders (
+    tg_id    INTEGER NOT NULL,
+    drama_id INTEGER NOT NULL REFERENCES dramas(id),
+    sent_at  TEXT    NOT NULL,
+    PRIMARY KEY (tg_id, drama_id)
+);
+
 -- Бір адам бір сериалды екі рет сатып ала алмайды.
 CREATE UNIQUE INDEX IF NOT EXISTS purchases_paid_once
     ON purchases (tg_id, drama_id) WHERE status = 'paid';
@@ -484,6 +492,29 @@ def buyers_count() -> int:
         "SELECT COUNT(DISTINCT tg_id) AS c FROM purchases WHERE status = 'paid'"
     ).fetchone()
     return int(row["c"])
+
+
+def unpaid_starters(drama_id: int) -> list[int]:
+    """Осы сериал бойынша шот ашып, төлемеген әрі еске салу алмағандар."""
+    rows = _db().execute(
+        "SELECT DISTINCT p.tg_id FROM purchases p"
+        " WHERE p.drama_id = ?"
+        "   AND NOT EXISTS (SELECT 1 FROM purchases q WHERE q.tg_id = p.tg_id"
+        "                     AND q.drama_id = p.drama_id AND q.status = 'paid')"
+        "   AND NOT EXISTS (SELECT 1 FROM reminders r WHERE r.tg_id = p.tg_id"
+        "                     AND r.drama_id = p.drama_id)"
+        " ORDER BY p.tg_id", (drama_id,)
+    ).fetchall()
+    return [int(r["tg_id"]) for r in rows]
+
+
+def mark_reminded(tg_id: int, drama_id: int) -> None:
+    db = _db()
+    with _lock:
+        db.execute(
+            "INSERT OR IGNORE INTO reminders (tg_id, drama_id, sent_at)"
+            " VALUES (?, ?, ?)", (tg_id, drama_id, _now()))
+        db.commit()
 
 
 def payment_starters_count() -> int:

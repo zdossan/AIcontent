@@ -100,3 +100,20 @@ def episode_kb(drama: Drama, number: int) -> InlineKeyboardMarkup:
             callback_data=f"pay:{drama.id}")])
     rows.append([InlineKeyboardButton(text=texts.BTN_MENU, callback_data="back")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def reminder_kb(drama: Drama) -> InlineKeyboardMarkup:
+    """Еске салу хабарламасының астындағы түймелер."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=texts.BTN_REMINDER_PAY,
+                              callback_data=f"pay:{drama.id}")],
+        [InlineKeyboardButton(text=texts.BTN_OFFER, callback_data="offer")]])
+
+
+def reminder_confirm_kb(drama_id: int) -> InlineKeyboardMarkup:
+    """Таратуды растау - кездейсоқ жіберіп алмау үшін."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=texts.BTN_REMINDER_SEND,
+                              callback_data=f"remind:{drama_id}")],
+        [InlineKeyboardButton(text=texts.BTN_REMINDER_CANCEL,
+                              callback_data="remind_cancel")]])

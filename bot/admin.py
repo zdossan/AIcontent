@@ -16,9 +16,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.exceptions import TelegramAPIError
 from aiogram.types import (BotCommand, BotCommandScopeChat, BufferedInputFile,
-                           Message)
+                           CallbackQuery, Message)
 
-from bot import config, store, texts
+from bot import config, keyboards, reminder, store, texts
 
 log = logging.getLogger(__name__)
 
@@ -40,6 +40,7 @@ ADMIN_COMMANDS = [
     BotCommand(command="export", description="Төлемдерді CSV етіп жүктеу"),
     BotCommand(command="bolimder", description="Қай бөлімдер жүктелген"),
     BotCommand(command="new", description="Жаңа сериал қосу"),
+    BotCommand(command="eske_salu", description="Төлемеген адамдарға еске салу"),
 ]
 
 
@@ -224,3 +225,54 @@ async def cmd_export(message: Message, bot) -> None:
     document = BufferedInputFile(buffer.getvalue().encode("utf-8-sig"),
                                  filename="tolemder.csv")
     await bot.send_document(chat_id=message.chat.id, document=document)
+
+
+@router.message(Command("eske_salu", "remind"))
+async def cmd_reminder(message: Message, bot) -> None:
+    """Төлемді бастап, аяқтамағандарға еске салу - алдымен растау сұралады."""
+    if not is_admin(message):
+        return
+
+    dramas = store.active_dramas()
+    if not dramas:
+        await bot.send_message(chat_id=message.chat.id, text=texts.ADMIN_NO_DRAMAS)
+        return
+
+    # Қазір каталогта бір сериал - соны аламыз. Бірнешеу болса, біріншісі.
+    drama = dramas[0]
+    count = len(reminder.targets(drama.id))
+    if count == 0:
+        await bot.send_message(chat_id=message.chat.id,
+                               text=texts.REMINDER_NOBODY)
+        return
+
+    await bot.send_message(
+        chat_id=message.chat.id,
+        text=texts.REMINDER_CONFIRM.format(title=html.escape(drama.title),
+                                           count=count),
+        reply_markup=keyboards.reminder_confirm_kb(drama.id),
+    )
+
+
+@router.callback_query(F.data.startswith("remind:"))
+async def cb_reminder_send(callback: CallbackQuery, bot) -> None:
+    """Растағаннан кейін таратуды бастау."""
+    if callback.from_user.id not in config.admin_ids():
+        return
+    await bot.answer_callback_query(callback_query_id=callback.id)
+
+    drama = store.get_drama(int(callback.data.split(":")[1]))
+    if drama is None:
+        return
+    sent = await reminder.send_all(bot, drama)
+    await bot.send_message(chat_id=callback.message.chat.id,
+                           text=texts.REMINDER_DONE.format(sent=sent))
+
+
+@router.callback_query(F.data == "remind_cancel")
+async def cb_reminder_cancel(callback: CallbackQuery, bot) -> None:
+    if callback.from_user.id not in config.admin_ids():
+        return
+    await bot.answer_callback_query(callback_query_id=callback.id)
+    await bot.send_message(chat_id=callback.message.chat.id,
+                           text=texts.REMINDER_CANCELLED)
