@@ -100,3 +100,28 @@ async def test_no_admin_commands_without_admins(fake_bot, db, monkeypatch):
     monkeypatch.delenv("ADMIN_IDS", raising=False)
     await admin.setup_admin_commands(fake_bot)
     assert "set_my_commands" not in fake_bot.calls
+
+
+async def test_stats_shows_user_count(fake_bot, db, drama, paid_user):
+    """Ботты қанша адам ашқаны көрінуі керек."""
+    store.upsert_user(111, "a", "A")
+    store.upsert_user(222, "b", "B")
+    store.upsert_user(paid_user, "c", "C")
+    await admin.cmd_stats(make_message(ADMIN_ID, "/stats"), fake_bot)
+    text = fake_bot.last_text()
+    assert "3" in text and "ашқан" in text.lower()
+
+
+async def test_stats_shows_conversion(fake_bot, db, drama, paid_user):
+    """4 адам ашса, 1-еуі төлесе - конверсия 25%."""
+    for tg_id in (111, 222, 333):
+        store.upsert_user(tg_id, None, None)
+    store.upsert_user(paid_user, None, None)
+    await admin.cmd_stats(make_message(ADMIN_ID, "/stats"), fake_bot)
+    assert "25" in fake_bot.last_text()
+
+
+def test_users_count_is_distinct(db):
+    store.upsert_user(7, "a", "A")
+    store.upsert_user(7, "a2", "A2")
+    assert store.users_count() == 1

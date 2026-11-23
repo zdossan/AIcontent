@@ -160,12 +160,20 @@ async def cmd_stats(message: Message, bot) -> None:
     if not is_admin(message):
         return
 
+    users = store.users_count()
+    buyers = store.buyers_count()
+    audience = [f"👥 Ботты ашқандар: {users}"]
+    if users:
+        audience.append(f"💳 Сатып алғандар: {buyers} "
+                        f"({round(buyers * 100 / users)}%)")
+
     summary = store.sales_summary()
     if not summary:
-        await bot.send_message(chat_id=message.chat.id, text=texts.ADMIN_NO_SALES)
+        await bot.send_message(chat_id=message.chat.id,
+                               text="\n".join(audience + ["", texts.ADMIN_NO_SALES]))
         return
 
-    lines = ["💰 <b>Сатылымдар</b>", ""]
+    lines = audience + ["", "💰 <b>Сатылымдар</b>", ""]
     total = 0
     for title, count, amount in summary:
         lines.append(f"{html.escape(title)}: {count} сатылым - {amount} ₸")

@@ -412,6 +412,19 @@ def recent_buyers(limit: int = 10) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def users_count() -> int:
+    """Ботты ашқан бірегей адамдар саны."""
+    return int(_db().execute("SELECT COUNT(*) AS c FROM users").fetchone()["c"])
+
+
+def buyers_count() -> int:
+    """Кемінде бір сериал сатып алған бірегей адамдар саны."""
+    row = _db().execute(
+        "SELECT COUNT(DISTINCT tg_id) AS c FROM purchases WHERE status = 'paid'"
+    ).fetchone()
+    return int(row["c"])
+
+
 def pending_count() -> int:
     """Аяқталмаған төлемдер саны - тек ақпарат үшін."""
     row = _db().execute(
