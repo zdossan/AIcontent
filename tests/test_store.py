@@ -158,3 +158,17 @@ def test_sales_periods_counts_almaty_day_not_utc(db, drama):
 def test_sales_periods_ignores_unpaid(db, drama):
     store.create_purchase(9, drama.id, "qr_pending", 490)
     assert store.sales_periods()["total"] == (0, 0)
+
+
+def test_payment_starters_counts_distinct_people(db, drama):
+    """Төлемді бастағандар - шот ашқандардың бірегей саны."""
+    store.create_purchase(7, drama.id, "qr_a", 490)
+    store.create_purchase(7, drama.id, "qr_b", 490)
+    store.create_purchase(8, drama.id, "qr_c", 490)
+    assert store.payment_starters_count() == 2
+
+
+def test_payment_starters_includes_those_who_paid(db, drama):
+    store.create_purchase(7, drama.id, "qr_a", 490)
+    store.mark_paid("qr_a")
+    assert store.payment_starters_count() == 1

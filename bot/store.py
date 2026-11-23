@@ -486,6 +486,13 @@ def buyers_count() -> int:
     return int(row["c"])
 
 
+def payment_starters_count() -> int:
+    """Төлем түймесін басып, шот ашқан бірегей адамдар саны."""
+    row = _db().execute(
+        "SELECT COUNT(DISTINCT tg_id) AS c FROM purchases").fetchone()
+    return int(row["c"])
+
+
 def pending_count() -> int:
     """Аяқталмаған төлемдер саны - тек ақпарат үшін."""
     row = _db().execute(

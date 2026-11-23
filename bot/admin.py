@@ -156,27 +156,41 @@ async def cmd_bolimder(message: Message, bot) -> None:
 
 @router.message(Command("stats"))
 async def cmd_stats(message: Message, bot) -> None:
-    """Аудитория, воронка және төлемдер."""
+    """Аудитория, төлемдер және воронка."""
     if not is_admin(message):
         return
 
     users = store.users_count()
+    starters = store.payment_starters_count()
     buyers = store.buyers_count()
     finished = store.finished_free_count()
-
-    lines = [f"👥 Ботты ашқандар: {users}"]
-    if users:
-        lines.append(f"🎬 Тегін бөлімдерді аяқтағандар: {finished} "
-                     f"({round(finished * 100 / users)}%)")
-        lines.append(f"💳 Сатып алғандар: {buyers} "
-                     f"({round(buyers * 100 / users)}%)")
-
     periods = store.sales_periods()
-    lines += ["", "💰 <b>Төлемдер</b>"]
+
+    def share(part: int) -> str:
+        return f" ({round(part * 100 / users)}%)" if users else ""
+
+    lines = [
+        "📊 <b>Статистика</b>",
+        "━━━━━━━━━━━━━━━━━━",
+        "",
+        "👥 <b>Мүшелер</b>",
+        f"Белсенді: {buyers} (сатып алғандар)",
+        "",
+        "💰 <b>Төлемдер</b>",
+    ]
     for label, key in (("Бүгін", "today"), ("Осы айда", "month"),
                        ("Барлық уақытта", "total")):
         count, amount = periods[key]
         lines.append(f"{label}: {count} - {amount} ₸")
+
+    lines += [
+        "",
+        "📈 <b>Конверсия</b>",
+        f"/start басқандар: {users}",
+        f"Тегін бөлімдерді аяқтағандар: {finished}{share(finished)}",
+        f"Төлемді бастағандар: {starters}{share(starters)}",
+        f"Төлем жасағандар: {buyers}{share(buyers)}",
+    ]
 
     # Сериал саны біреу болса, бөліп жазудың мағынасы жоқ.
     summary = store.sales_summary()
@@ -184,11 +198,6 @@ async def cmd_stats(message: Message, bot) -> None:
         lines += ["", "🎬 <b>Сериалдар бойынша</b>"]
         for title, count, amount in summary:
             lines.append(f"{html.escape(title)}: {count} - {amount} ₸")
-
-    waiting = store.pending_count()
-    if waiting:
-        lines += ["", f"⏳ Аяқталмаған төлем: {waiting} "
-                      f"(ақша алынбаған, сатылымға кірмейді)"]
 
     await bot.send_message(chat_id=message.chat.id, text="\n".join(lines))
 

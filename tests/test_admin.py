@@ -110,8 +110,7 @@ async def test_stats_shows_user_count(fake_bot, db, drama, paid_user):
     store.upsert_user(222, "b", "B")
     store.upsert_user(paid_user, "c", "C")
     await admin.cmd_stats(make_message(ADMIN_ID, "/stats"), fake_bot)
-    text = fake_bot.last_text()
-    assert "3" in text and "ашқан" in text.lower()
+    assert "/start басқандар: 3" in fake_bot.last_text()
 
 
 async def test_stats_shows_conversion(fake_bot, db, drama, paid_user):
@@ -165,3 +164,20 @@ async def test_stats_shows_per_drama_breakdown_for_several(
     await admin.cmd_stats(make_message(ADMIN_ID, "/stats"), fake_bot)
     text = fake_bot.last_text()
     assert "Тең емес" in text and "Екінші" in text
+
+
+async def test_stats_follows_the_requested_layout(fake_bot, db, drama, paid_user):
+    """Иесі сұраған құрылым: тақырып, мүшелер, төлемдер, конверсия."""
+    await admin.cmd_stats(make_message(ADMIN_ID, "/stats"), fake_bot)
+    text = fake_bot.last_text()
+    for block in ("📊", "Статистика", "👥 <b>Мүшелер</b>", "Белсенді:",
+                  "💰 <b>Төлемдер</b>", "📈 <b>Конверсия</b>",
+                  "/start басқандар:", "Төлемді бастағандар:",
+                  "Төлем жасағандар:"):
+        assert block in text, block
+
+
+async def test_stats_order_of_blocks(fake_bot, db, drama, paid_user):
+    await admin.cmd_stats(make_message(ADMIN_ID, "/stats"), fake_bot)
+    text = fake_bot.last_text()
+    assert text.index("Мүшелер") < text.index("Төлемдер") < text.index("Конверсия")
