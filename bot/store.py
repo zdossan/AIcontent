@@ -409,18 +409,6 @@ def sales_summary() -> list[tuple[str, int, int]]:
     return [(r["title"], r["cnt"], r["total"]) for r in rows]
 
 
-def recent_buyers(limit: int = 10) -> list[dict]:
-    """Соңғы төлегендер: кім, қашан, не сатып алды."""
-    rows = _db().execute(
-        "SELECT p.tg_id, u.username, u.first_name, p.client_name, d.title,"
-        " p.amount, p.paid_at"
-        " FROM purchases p JOIN dramas d ON d.id = p.drama_id"
-        " LEFT JOIN users u ON u.tg_id = p.tg_id"
-        " WHERE p.status = 'paid' ORDER BY p.paid_at DESC LIMIT ?", (limit,)
-    ).fetchall()
-    return [dict(r) for r in rows]
-
-
 def mark_viewed(tg_id: int, drama_id: int, number: int) -> None:
     """Көрілген ең алыс бөлімді белгілеу. Артқа қайтса сан кемімейді."""
     db = _db()

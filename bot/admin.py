@@ -184,17 +184,6 @@ async def cmd_stats(message: Message, bot) -> None:
     lines.append("")
     lines.append(f"<b>Барлығы: {total} ₸</b>")
 
-    buyers = store.recent_buyers(10)
-    if buyers:
-        lines.append("")
-        lines.append("👥 <b>Соңғы төлегендер</b>")
-        for b in buyers:
-            who = b["client_name"] or (
-                b["username"] and f"@{b['username']}") or (b["first_name"] or "")
-            lines.append(
-                f"{store.to_local(b['paid_at'])} - {html.escape(who)} "
-                f"(id {b['tg_id']}) - {html.escape(b['title'])}")
-
     waiting = store.pending_count()
     if waiting:
         lines.append("")

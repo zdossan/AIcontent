@@ -68,13 +68,15 @@ async def test_command_during_dialog_cancels_it(fake_bot, db, fsm):
     assert store.all_dramas() == []
 
 
-async def test_stats_lists_recent_buyers(fake_bot, db, drama, paid_user):
-    """/stats тек сома емес, кім төлегенін де көрсетуі керек."""
+async def test_stats_does_not_list_individual_buyers(fake_bot, db, drama,
+                                                     paid_user):
+    """/stats - қысқа есеп. Жеке адамдардың аты мен id-і онда көрінбейді,
+    олар /export пен Google кестеде қалады."""
     store.upsert_user(paid_user, "aigerim", "Әйгерім")
     await admin.cmd_stats(make_message(ADMIN_ID, "/stats"), fake_bot)
     text = fake_bot.last_text()
-    assert "aigerim" in text or "Әйгерім" in text
-    assert str(paid_user) in text
+    assert "aigerim" not in text
+    assert str(paid_user) not in text
 
 
 async def test_stats_counts_pending_separately(fake_bot, db, drama, paid_user):
