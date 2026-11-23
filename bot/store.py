@@ -66,6 +66,15 @@ CREATE TABLE IF NOT EXISTS purchases (
     client_name  TEXT
 );
 
+-- Тегін бөлімдерді кім қай жерге дейін көргені (воронканы өлшеу үшін).
+CREATE TABLE IF NOT EXISTS views (
+    tg_id       INTEGER NOT NULL,
+    drama_id    INTEGER NOT NULL REFERENCES dramas(id),
+    max_episode INTEGER NOT NULL,
+    updated_at  TEXT    NOT NULL,
+    PRIMARY KEY (tg_id, drama_id)
+);
+
 -- Бір адам бір сериалды екі рет сатып ала алмайды.
 CREATE UNIQUE INDEX IF NOT EXISTS purchases_paid_once
     ON purchases (tg_id, drama_id) WHERE status = 'paid';
@@ -410,6 +419,38 @@ def recent_buyers(limit: int = 10) -> list[dict]:
         " WHERE p.status = 'paid' ORDER BY p.paid_at DESC LIMIT ?", (limit,)
     ).fetchall()
     return [dict(r) for r in rows]
+
+
+def mark_viewed(tg_id: int, drama_id: int, number: int) -> None:
+    """Көрілген ең алыс бөлімді белгілеу. Артқа қайтса сан кемімейді."""
+    db = _db()
+    with _lock:
+        db.execute(
+            "INSERT INTO views (tg_id, drama_id, max_episode, updated_at)"
+            " VALUES (?, ?, ?, ?)"
+            " ON CONFLICT(tg_id, drama_id) DO UPDATE SET"
+            " max_episode = MAX(max_episode, excluded.max_episode),"
+            " updated_at = excluded.updated_at",
+            (tg_id, drama_id, number, _now()),
+        )
+        db.commit()
+
+
+def max_viewed(tg_id: int, drama_id: int) -> int:
+    row = _db().execute(
+        "SELECT max_episode FROM views WHERE tg_id = ? AND drama_id = ?",
+        (tg_id, drama_id)).fetchone()
+    return int(row["max_episode"]) if row else 0
+
+
+def finished_free_count() -> int:
+    """Тегін бөлімдердің соңғысына жеткен бірегей адамдар саны."""
+    row = _db().execute(
+        "SELECT COUNT(DISTINCT v.tg_id) AS c FROM views v"
+        " JOIN dramas d ON d.id = v.drama_id"
+        " WHERE v.max_episode >= d.free_episodes"
+    ).fetchone()
+    return int(row["c"])
 
 
 def users_count() -> int:

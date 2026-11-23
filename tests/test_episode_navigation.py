@@ -82,3 +82,17 @@ async def test_episode_still_protected_after_switch(fake_bot, db,
     d = drama_with_26_episodes
     await handlers.cb_episode(make_callback(7, f"ep:{d.id}:4"), fake_bot)
     assert fake_bot.calls["copy_message"][0]["protect_content"] is True
+
+
+async def test_sending_episode_records_progress(fake_bot, db,
+                                                drama_with_26_episodes):
+    """Бөлім жіберілгенде көру прогресі жазылуы керек."""
+    d = drama_with_26_episodes
+    await handlers.send_episode(fake_bot, 7, d, 4)
+    assert store.max_viewed(7, d.id) == 4
+
+
+async def test_failed_send_does_not_record_progress(fake_bot, db, drama):
+    """Бөлім жоқ болса прогресс жазылмайды."""
+    await handlers.send_episode(fake_bot, 7, drama, 2)
+    assert store.max_viewed(7, drama.id) == 0

@@ -111,3 +111,17 @@ def test_mark_paid_stores_kaspi_client_name(db, drama):
     store.create_purchase(7, drama.id, "qr_1", 490)
     purchase = store.mark_paid("qr_1", client_name="ДОСАН Ж.")
     assert purchase.client_name == "ДОСАН Ж."
+
+
+def test_view_progress_keeps_the_furthest_episode(db, drama):
+    store.mark_viewed(7, drama.id, 3)
+    store.mark_viewed(7, drama.id, 6)
+    store.mark_viewed(7, drama.id, 2)
+    assert store.max_viewed(7, drama.id) == 6
+
+
+def test_finished_free_counts_only_those_who_reached_the_last_free(db, drama):
+    store.mark_viewed(7, drama.id, 6)
+    store.mark_viewed(8, drama.id, 5)
+    store.mark_viewed(9, drama.id, 6)
+    assert store.finished_free_count() == 2

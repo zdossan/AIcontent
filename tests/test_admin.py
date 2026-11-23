@@ -125,3 +125,14 @@ def test_users_count_is_distinct(db):
     store.upsert_user(7, "a", "A")
     store.upsert_user(7, "a2", "A2")
     assert store.users_count() == 1
+
+
+async def test_stats_shows_funnel_step(fake_bot, db, drama_with_26_episodes):
+    """Тегін бөлімдерді аяқтағандар саны статистикада болуы керек."""
+    store.upsert_user(111, None, None)
+    store.upsert_user(222, None, None)
+    store.mark_viewed(111, drama_with_26_episodes.id, 6)
+    store.mark_viewed(222, drama_with_26_episodes.id, 3)
+    await admin.cmd_stats(make_message(ADMIN_ID, "/stats"), fake_bot)
+    text = fake_bot.last_text()
+    assert "аяқтағандар" in text.lower()

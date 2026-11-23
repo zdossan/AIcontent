@@ -162,8 +162,11 @@ async def cmd_stats(message: Message, bot) -> None:
 
     users = store.users_count()
     buyers = store.buyers_count()
+    finished = store.finished_free_count()
     audience = [f"👥 Ботты ашқандар: {users}"]
     if users:
+        audience.append(f"🎬 Тегін бөлімдерді аяқтағандар: {finished} "
+                        f"({round(finished * 100 / users)}%)")
         audience.append(f"💳 Сатып алғандар: {buyers} "
                         f"({round(buyers * 100 / users)}%)")
 
