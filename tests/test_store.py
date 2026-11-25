@@ -172,3 +172,42 @@ def test_payment_starters_includes_those_who_paid(db, drama):
     store.create_purchase(7, drama.id, "qr_a", 490)
     store.mark_paid("qr_a")
     assert store.payment_starters_count() == 1
+
+
+def test_finished_is_locked_in_at_the_time_of_viewing(db, drama):
+    """Тегін шек көтерілсе, бұрын аяқтағандар саналып тұруы керек."""
+    store.mark_viewed(7, drama.id, 6)          # сол кезде тегін шек - 6
+    assert store.finished_free_count() == 1
+    store._db().execute("UPDATE dramas SET free_episodes = 9")
+    store._db().commit()
+    assert store.finished_free_count() == 1    # бұрынғы адам жоғалмайды
+
+
+def test_new_viewer_must_reach_the_new_threshold(db, drama):
+    store._db().execute("UPDATE dramas SET free_episodes = 9")
+    store._db().commit()
+    store.mark_viewed(8, drama.id, 6)
+    assert store.finished_free_count() == 0
+    store.mark_viewed(8, drama.id, 9)
+    assert store.finished_free_count() == 1
+
+
+def test_migration_backfills_old_progress(tmp_path):
+    """Бағансыз ескі база: 6-бөлімге жеткендер аяқтаған деп белгіленеді."""
+    import sqlite3
+
+    path = tmp_path / "old.db"
+    old = sqlite3.connect(path)
+    old.executescript(store.SCHEMA.replace("    finished    INTEGER NOT NULL DEFAULT 0,\n", ""))
+    old.execute("INSERT INTO dramas (title, price_kzt, total_episodes, free_episodes,"
+                " bind_code, created_at) VALUES ('X', 490, 26, 9, 'C1', '2026-11-01 00:00:00')")
+    old.execute("INSERT INTO views (tg_id, drama_id, max_episode, updated_at)"
+                " VALUES (1, 1, 6, '2026-11-01 00:00:00')")
+    old.execute("INSERT INTO views (tg_id, drama_id, max_episode, updated_at)"
+                " VALUES (2, 1, 4, '2026-11-01 00:00:00')")
+    old.commit()
+    old.close()
+
+    store.init_db(path)
+    assert store.finished_free_count() == 1
+    store.close()

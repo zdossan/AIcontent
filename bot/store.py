@@ -20,6 +20,10 @@ log = logging.getLogger(__name__)
 
 TZ = ZoneInfo("Asia/Almaty")
 BIND_CODE_ALPHABET = string.ascii_uppercase + string.digits
+
+# Прогресс «аяқталған» деп белгіленбей тұрған кездегі тегін бөлім саны.
+# Тек бір реттік көшіру үшін керек, жаңа есептеулерде қолданылмайды.
+LEGACY_FREE_EPISODES = 6
 BIND_CODE_LEN = 6
 
 _conn: sqlite3.Connection | None = None
@@ -71,6 +75,7 @@ CREATE TABLE IF NOT EXISTS views (
     tg_id       INTEGER NOT NULL,
     drama_id    INTEGER NOT NULL REFERENCES dramas(id),
     max_episode INTEGER NOT NULL,
+    finished    INTEGER NOT NULL DEFAULT 0,
     updated_at  TEXT    NOT NULL,
     PRIMARY KEY (tg_id, drama_id)
 );
@@ -171,6 +176,17 @@ def _migrate(db: sqlite3.Connection) -> None:
     if "client_name" not in columns:
         db.execute("ALTER TABLE purchases ADD COLUMN client_name TEXT")
         log.info("Дерекқорға client_name бағаны қосылды")
+
+    view_columns = {row["name"] for row in db.execute("PRAGMA table_info(views)")}
+    if "finished" not in view_columns:
+        db.execute("ALTER TABLE views ADD COLUMN finished INTEGER NOT NULL DEFAULT 0")
+        # Бұл баған пайда болғанға дейін тегін шек 6 болатын. Сол кезде
+        # 6-бөлімге жеткендер аяқтаған болып саналған - есеп жоғалмауы үшін
+        # соларды белгілеп қоямыз.
+        db.execute("UPDATE views SET finished = 1 WHERE max_episode >= ?",
+                   (LEGACY_FREE_EPISODES,))
+        log.info("views кестесіне finished бағаны қосылды (ескі межесі %s)",
+                 LEGACY_FREE_EPISODES)
 
 
 def close() -> None:
@@ -450,16 +466,26 @@ def sales_summary() -> list[tuple[str, int, int]]:
 
 
 def mark_viewed(tg_id: int, drama_id: int, number: int) -> None:
-    """Көрілген ең алыс бөлімді белгілеу. Артқа қайтса сан кемімейді."""
+    """Көрілген ең алыс бөлімді белгілеу. Артқа қайтса сан кемімейді.
+
+    «Аяқтады» деген белгі сол сәттегі тегін шекпен қойылады да, бұдан әрі
+    алынбайды. Сондықтан тегін бөлім саны кейін өзгерсе де, бұрынғы
+    статистика бұзылмайды.
+    """
     db = _db()
     with _lock:
+        row = db.execute("SELECT free_episodes FROM dramas WHERE id = ?",
+                         (drama_id,)).fetchone()
+        free_now = int(row["free_episodes"]) if row else 0
+        finished = 1 if free_now and number >= free_now else 0
         db.execute(
-            "INSERT INTO views (tg_id, drama_id, max_episode, updated_at)"
-            " VALUES (?, ?, ?, ?)"
+            "INSERT INTO views (tg_id, drama_id, max_episode, finished, updated_at)"
+            " VALUES (?, ?, ?, ?, ?)"
             " ON CONFLICT(tg_id, drama_id) DO UPDATE SET"
             " max_episode = MAX(max_episode, excluded.max_episode),"
+            " finished = MAX(finished, excluded.finished),"
             " updated_at = excluded.updated_at",
-            (tg_id, drama_id, number, _now()),
+            (tg_id, drama_id, number, finished, _now()),
         )
         db.commit()
 
@@ -472,11 +498,13 @@ def max_viewed(tg_id: int, drama_id: int) -> int:
 
 
 def finished_free_count() -> int:
-    """Тегін бөлімдердің соңғысына жеткен бірегей адамдар саны."""
+    """Тегін бөлімдерді аяқтаған бірегей адамдар саны.
+
+    Белгі көру сәтінде қойылады, сондықтан тегін бөлім саны кейін
+    көтерілсе де бұрынғылар саналып тұра береді.
+    """
     row = _db().execute(
-        "SELECT COUNT(DISTINCT v.tg_id) AS c FROM views v"
-        " JOIN dramas d ON d.id = v.drama_id"
-        " WHERE v.max_episode >= d.free_episodes"
+        "SELECT COUNT(DISTINCT tg_id) AS c FROM views WHERE finished = 1"
     ).fetchone()
     return int(row["c"])
 
